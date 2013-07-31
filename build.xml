@@ -1,4 +1,4 @@
-<project name="AnnaKalenkova" default="Compile Sources" basedir=".">
+<project name="BPMNConversions" default="Compile Sources" basedir=".">
 		<!-- set global properties for this build -->
 		<property environment="env" />
 		<property name="src" location="src" />
@@ -8,7 +8,7 @@
 		<property name="dist" location="dist" />
 		<property name="release" location="latestrelease" />
 		<property name="version" value="6.3.${env.BUILD_NUMBER}" />
-		<property name="project" value="AnnaKalenkova" />
+		<property name="project" value="BPMNConversions" />
 
 		<!-- Set the os to win32, win64, lin32, lin64, mac, or all -->
 		<property name="os" value="all" />
@@ -125,7 +125,7 @@
 							version="${version}" 
 							os="all" 
 							url="http://www.promtools.org/prom6/packages/${project}/${project}-${version}-${os}.zip"
-							desc="Anna Kalenkova"
+							desc="BPMN Conversions (to and from)"
 							org="Moscow Higher Scheool of Economics" 
 							license="LGPL" 
 							author="Anna Kalenkova"
@@ -133,9 +133,8 @@
 							hasPlugins="true"
 							logo="http://www.promtools.org/prom6/packages/prom_subtitle_hat_300.png"
 						>
-							<!--dependency name="Upstream Package 1 (CHANGE)"/>
-							<dependency name="Upstream Package 2 (CHANGE)"/>
-							<dependency name="Upstream Package 3 (CHANGE)"/-->
+							<dependency name="BPMN"/>
+							<dependency name="BPMNAnalysis"/>
 						</package>
 					</packages>
 				</echoxml>
