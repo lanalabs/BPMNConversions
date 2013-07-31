@@ -43,5 +43,7 @@
 	<classpathentry kind="lib" path="tests/libs-external/lib-cobertura/log4j-1.2.9.jar"/>
 	<classpathentry kind="lib" path="tests/libs-external/cobertura.jar"/>
 	<classpathentry kind="lib" path="tests/libs-external/junit-4.8.1.jar"/>
+	<classpathentry kind="lib" path="packagelib/BPMN.jar"/>
+	<classpathentry kind="lib" path="packagelib/BPMNAnalysis.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
