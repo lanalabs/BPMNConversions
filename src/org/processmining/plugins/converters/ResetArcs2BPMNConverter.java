@@ -165,7 +165,7 @@ public class ResetArcs2BPMNConverter {
 		innerNodes.addAll(cancelledActivities);
 		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges =
 				bpmnDiagram.getInEdges(catchingActivity);
-		// Ñatching activity has only one incoming edge by the construction
+		// Catching activity has only one incoming edge by the construction
 		AbstractDirectedGraphEdge errorEdge = inEdges.iterator().next(); 
 		innerNodes.add((AbstractDirectedGraphNode)errorEdge.getSource());
 		bpmnDiagram.removeEdge(errorEdge);
