@@ -126,7 +126,7 @@
 							os="all" 
 							url="http://www.promtools.org/prom6/packages/${project}/${project}-${version}-${os}.zip"
 							desc="BPMN Conversions (to and from)"
-							org="Moscow Higher Scheool of Economics" 
+							org="Moscow The Higher School of Economics" 
 							license="LGPL" 
 							author="Anna Kalenkova"
 							auto="false"
@@ -135,6 +135,8 @@
 						>
 							<dependency name="BPMN"/>
 							<dependency name="BPMNAnalysis"/>
+							<dependency name="PetriNets"/>
+							<dependency name="PNAnalysis"/>
 						</package>
 					</packages>
 				</echoxml>
