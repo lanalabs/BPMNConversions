@@ -20,11 +20,14 @@ import org.processmining.models.graphbased.directed.AbstractDirectedGraphEdge;
 import org.processmining.models.graphbased.directed.AbstractDirectedGraphNode;
 import org.processmining.models.graphbased.directed.ContainableDirectedGraphElement;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
+import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramFactory;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
+import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
+import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.SubProcess;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
@@ -32,7 +35,7 @@ import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
-import org.processmining.plugins.graphalgorithms.BasicBlockDiscovery;
+import org.processmining.plugins.graphalgorithms.SubprocessDiscovery;
 
 /**
  * Addition of cancellation regions to BPMN diagram
@@ -40,15 +43,21 @@ import org.processmining.plugins.graphalgorithms.BasicBlockDiscovery;
  * @author Anna Kalenkova
  * Aug 1, 2013
  */
-@Plugin(name = "Add cancellation regions to BPMN diagram", parameterLabels = { "BPMN Diagram" }, 
-returnLabels = { "BPMN Diagram" }, returnTypes = { BPMNDiagram.class }, 
-userAccessible = true, help = "Adds cancellation regions to BPMN diagram")
+@Plugin(name = "Add cancellation regions to BPMN diagram", parameterLabels = { "BPMN Diagram",
+		"BPMN Diagram"}, returnLabels = { "BPMN Diagram", "BPMN Diagram"}, 
+		returnTypes = {BPMNDiagram.class, BPMNDiagram.class}, userAccessible = true, 
+		help = "Adds cancellation regions to BPMN diagram")
 public class ResetArcs2BPMNConverter {
+	
+	private static final String SUBPROC_START_EVENT_LABEL = "Start event of the subprocess";
+	private static final String SUBPROC_END_EVENT_LABEL = "End event of the subprocess";
 
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Add cancellation regions to BPMN diagram", 
 		requiredParameterLabels = { 0 })
-	public BPMNDiagram addCancellationRegions(UIPluginContext context, BPMNDiagram bpmnDiagram) {
+	public BPMNDiagram[] addCancellationRegions(UIPluginContext context, BPMNDiagram bpmnDiagram) {
+		
+		BPMNDiagram oldDiagram = BPMNDiagramFactory.cloneBPMNDiagram(bpmnDiagram); 
 		
 		PetrinetGraph petriNet = obtainPetriNet(context, bpmnDiagram);
 		if(petriNet == null) {
@@ -74,12 +83,16 @@ public class ResetArcs2BPMNConverter {
 						conversionMap);
 				Activity catchingActivity = convertTransitionsToActivities(Arrays.asList(transition), conversionMap)
 						.get(0);
-				constructSubProcess(cancelledActivities, catchingActivity, conversionMap, bpmnDiagram, startEvent,
+				constructSubProcess(cancelledActivities, catchingActivity, conversionMap, 
+						bpmnDiagram, startEvent,
 						endEvent);
 			}
 		}
 		
-		return bpmnDiagram;
+		// Clone diagram to repaint it
+		BPMNDiagram newBPMNDiagram = BPMNDiagramFactory.cloneBPMNDiagram(bpmnDiagram); 
+		
+		return new BPMNDiagram[]{newBPMNDiagram, oldDiagram};
 	}
 	
 	private Event retrieveStartEvent(UIPluginContext context, BPMNDiagram bpmnDiagram) {
@@ -160,45 +173,131 @@ public class ResetArcs2BPMNConverter {
 			Activity catchingActivity, Map<String, Activity> conversionMap, BPMNDiagram bpmnDiagram,
 			Event startEvent, Event endEvent) {
 
-		// Determine inner nodes (nodes to be included in subprocess)
+		// Determine inner nodes (nodes to be included in the subprocess)
 		List<AbstractDirectedGraphNode> innerNodes = new ArrayList<AbstractDirectedGraphNode>();
 		innerNodes.addAll(cancelledActivities);
-		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges =
+		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> errorEdges =
 				bpmnDiagram.getInEdges(catchingActivity);
+		
 		// Catching activity has only one incoming edge by the construction
-		AbstractDirectedGraphEdge errorEdge = inEdges.iterator().next(); 
+		AbstractDirectedGraphEdge errorEdge = errorEdges.iterator().next(); 
 		innerNodes.add((AbstractDirectedGraphNode)errorEdge.getSource());
 		bpmnDiagram.removeEdge(errorEdge);
 		
-		BasicBlockDiscovery basicBlockDiscovery = new BasicBlockDiscovery(bpmnDiagram, startEvent, endEvent);
+		SubprocessDiscovery subProcessDiscovery = new SubprocessDiscovery(bpmnDiagram, startEvent, endEvent);
 		
 		// Determine immediate common dominator
-		AbstractDirectedGraphNode immCommonDominator = basicBlockDiscovery
+		AbstractDirectedGraphNode immCommonDominator = subProcessDiscovery
 				.determineImmediateCommonDominator(innerNodes, false);
 		
 		System.out.println("Common domnator " + immCommonDominator);
 		
 		// Determine immediate common post-dominator
-		AbstractDirectedGraphNode immCommonPostDominator = basicBlockDiscovery
+		AbstractDirectedGraphNode immCommonPostDominator = subProcessDiscovery
 				.determineImmediateCommonDominator(innerNodes, true);
 		
 		System.out.println("Common post-domnator " + immCommonPostDominator);
 		
 		// Determine subprocess nodes
-		Set<ContainableDirectedGraphElement> subprocessNodes = basicBlockDiscovery
+		Set<ContainableDirectedGraphElement> subprocessNodes = subProcessDiscovery
 				.determineSubprocessElements(immCommonDominator, immCommonPostDominator);
 		
+	
+		
 		// Create subprocess
-		SubProcess subprocess = bpmnDiagram.addSubProcess("Sub-Process", false, false, false, false, false);
+		SubProcess subprocess = bpmnDiagram.addSubProcess("Sub-Process", 
+				false, false, false, false, false);
 		for(ContainableDirectedGraphElement bpmnNode : subprocessNodes) {
 			System.out.println("Add child");
 			System.out.println(bpmnNode);
+			if(bpmnNode instanceof BPMNNode) {
+				((BPMNNode)bpmnNode).setParentSubprocess(subprocess);
+			}
+			if(bpmnNode instanceof BPMNEdge) {
+				((BPMNEdge)bpmnNode).setParent(subprocess);
+			}
 			subprocess.addChild((ContainableDirectedGraphElement)bpmnNode);
 		}
+
+		// Connect subprocess with other nodes
+		connectSubprocess(subprocess, bpmnDiagram, (BPMNNode)immCommonDominator, 
+				(BPMNNode)immCommonPostDominator);
 		
+		// Add start and end events
+		addStartAndEndEvents(subprocess, bpmnDiagram, (BPMNNode)immCommonDominator, 
+				(BPMNNode)immCommonPostDominator);
+
 		return bpmnDiagram;
 	}
+	
+	/**
+	 * Connecting subprocess with other diagram nodes
+	 * 
+	 * @param subProcess
+	 * @param bpmnDiagram
+	 * @param immCommonDominator
+	 * @param immCommonPostDominator
+	 */
+	private void connectSubprocess(SubProcess subProcess, BPMNDiagram bpmnDiagram, BPMNNode immCommonDominator,
+			BPMNNode immCommonPostDominator) {
+
+		//Delete incoming flows for dominator and create incoming flows for subprocess
+		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges = bpmnDiagram
+				.getInEdges(immCommonDominator);
 		
+		// In this case immCommonDominator is a Gateway by the construction,
+		// we have to create a novel gateway before the subprocess		
+		BPMNNode targetNode = subProcess;
+		if (inEdges.size() > 1) {
+			Gateway inGateway = bpmnDiagram.addGateway("", ((Gateway)immCommonDominator)
+					.getGatewayType());
+			targetNode = inGateway;
+			bpmnDiagram.addFlow(inGateway, subProcess, "");
+		}
+		for (BPMNEdge inEdge : inEdges) {
+			BPMNNode sourceNode = (BPMNNode)inEdge.getSource();
+			bpmnDiagram.addFlow(sourceNode, targetNode, "");
+			bpmnDiagram.removeEdge(inEdge);
+		}
+		
+		//Delete outgoing flows for post-dominator and create incoming flows for subprocess
+		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges = bpmnDiagram
+				.getOutEdges(immCommonPostDominator);
+		// In this case immCommonPostDominator is a Gateway by the construction,
+		// we have to create a novel gateway after the subprocess		
+		BPMNNode sourceNode = subProcess;
+		if (outEdges.size() > 1) {
+			Gateway outGateway = bpmnDiagram.addGateway("", ((Gateway) immCommonPostDominator).getGatewayType());
+			sourceNode = outGateway;
+			bpmnDiagram.addFlow(subProcess, outGateway, "");
+		}
+		for (BPMNEdge outEdge : outEdges) {
+			targetNode = (BPMNNode)outEdge.getTarget();
+			bpmnDiagram.addFlow(sourceNode, targetNode, "");
+			bpmnDiagram.removeEdge(outEdge);
+		}
+	}
+	
+	/**
+	 * Add start and end events to subprocess
+	 * 
+	 * @param subprocess
+	 * @param bpmnDiagram
+	 * @param immCommonDominator
+	 * @param immCommonPostDominator
+	 */
+	private void addStartAndEndEvents(SubProcess subprocess, BPMNDiagram bpmnDiagram, 
+			BPMNNode immCommonDominator, BPMNNode immCommonPostDominator) {
+
+		Event startEvent = bpmnDiagram.addEvent(SUBPROC_START_EVENT_LABEL, EventType.START,
+				EventTrigger.NONE, null, subprocess, null);
+		bpmnDiagram.addFlow(startEvent, immCommonDominator, subprocess, "");
+		
+		Event endEvent = bpmnDiagram.addEvent(SUBPROC_END_EVENT_LABEL, EventType.END,
+				EventTrigger.NONE, null, subprocess, null);
+		bpmnDiagram.addFlow(immCommonPostDominator, endEvent, subprocess, "");
+	}
+	
 	/**
 	 * Retrieving cancelled transitions - set of transitions which might be cancelled
 	 * 
