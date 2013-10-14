@@ -137,6 +137,7 @@
 							<dependency name="BPMNAnalysis"/>
 							<dependency name="PetriNets"/>
 							<dependency name="PNAnalysis"/>
+							<dependency name="ProcessTree"/>
 						</package>
 					</packages>
 				</echoxml>

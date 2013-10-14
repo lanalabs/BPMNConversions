@@ -6,11 +6,13 @@ import org.processmining.framework.connections.impl.AbstractConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
+import org.processmining.processtree.ProcessTree;
 
 public class BPMNConversionConnection extends AbstractConnection {
 	
 	public static String BPMN_DIAGRAM = "BPMN Diagram";
 	public static String PETRI_NET = "Petri net";
+	public static String PROCESS_TREE = "Process tree";
 	public static String CONVERSION_MAP = "Conversion map";
 	
 	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
@@ -18,6 +20,14 @@ public class BPMNConversionConnection extends AbstractConnection {
 		super(label);
 		put(BPMN_DIAGRAM, bpmnDiagram);
 		put(PETRI_NET, petriNet);
+		put(CONVERSION_MAP, conversionMap);
+	}
+	
+	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, ProcessTree tree,
+			Map<String, Activity> conversionMap) {
+		super(label);
+		put(BPMN_DIAGRAM, bpmnDiagram);
+		put(PROCESS_TREE, tree);
 		put(CONVERSION_MAP, conversionMap);
 	}
 }

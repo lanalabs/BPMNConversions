@@ -45,5 +45,8 @@
 	<classpathentry kind="lib" path="tests/libs-external/junit-4.8.1.jar"/>
 	<classpathentry kind="lib" path="packagelib/BPMN.jar"/>
 	<classpathentry kind="lib" path="packagelib/BPMNAnalysis.jar"/>
+	<classpathentry kind="lib" path="packagelib/PetriNets.jar"/>
+	<classpathentry kind="lib" path="packagelib/PNAnalysis.jar"/>
+	<classpathentry kind="lib" path="packagelib/ProcessTree.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
