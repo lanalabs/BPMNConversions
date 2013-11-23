@@ -69,16 +69,15 @@ public class PetriNet2BPMNConverter {
 		restoreResetArcs(deletedResetArcs, petrinetGraph);
 		
 		//TODO: Verify that the Petri net is a Workflow net
-		// If Petri net is not a free-choice net it will not be converted
+		// If Petri net is not a free-choice net it will be transformed
 		if (!isFreeChoice) {
-			String nonFreeChoiceMessage = "Petri net is not a free-choice net and "
-					+ "couldn't be converted to BPMN diagram";
-			context.getFutureResult(0).cancel(true);
+			String nonFreeChoiceMessage = "Initial Petri net is not a free-choice net and "
+					+ "will be converted to resembling free-choice Petri net";
 			context.log(nonFreeChoiceMessage);
 			JPanel warningPanel = new JPanel();
 			warningPanel.add(new JLabel(nonFreeChoiceMessage));
 			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
-			return null;
+			convertToResemblingFreeChoice(petrinetGraph);
 		}
 		
 		// Convert Petri net to a BPMN diagram
@@ -94,6 +93,58 @@ public class PetriNet2BPMNConverter {
 				bpmnDiagram, petrinetGraph, convertionMap));
 		
 		return new Object[] {bpmnDiagram, convertionMap};
+	}
+	
+	/**
+	 * Convert to resembling free-choice net
+	 * @param petrinetGraph
+	 */
+	private void convertToResemblingFreeChoice(PetrinetGraph petrinetGraph) {
+		// Set of common places which should be splited
+		Set<Place> nonFreePlaces = new HashSet<Place>();		
+		//For each pair of transitions
+		for(Transition t1 : petrinetGraph.getTransitions()) {
+			for(Transition t2 : petrinetGraph.getTransitions()) {
+				Set<Place> inPlaces1 = collectInPlaces(t1, petrinetGraph);
+				Set<Place> inPlaces2 = collectInPlaces(t2, petrinetGraph);
+				Set<Place> commonPlaces = new HashSet<Place>();
+				boolean hasCommonPlace = false;
+				boolean hasDiffPlaces = false;
+				for(Place p1 : inPlaces1) {
+					for(Place p2 : inPlaces2) {
+						if(p1.equals(p2)){
+							hasCommonPlace = true;
+							commonPlaces.add(p1);
+						} else {
+							hasDiffPlaces = true;
+						}
+					}
+				}
+				if(hasCommonPlace && hasDiffPlaces) {
+					nonFreePlaces.addAll(commonPlaces);
+				}
+			}
+		}
+		splitNonFreePlaces(petrinetGraph, nonFreePlaces);
+	}
+	
+	/**
+	 * Split non-free places
+	 * @param petrinetGraph
+	 * @param nonFreePlaces
+	 */
+	private void splitNonFreePlaces(PetrinetGraph petrinetGraph, Set<Place> nonFreePlaces) {
+		for (Place place : nonFreePlaces) {
+			for(PetrinetEdge outArc : petrinetGraph.getOutEdges(place)) {
+				Transition outTransition = (Transition)outArc.getTarget();
+				petrinetGraph.removeEdge(outArc);
+				Place newPlace = petrinetGraph.addPlace("");
+				Transition newTransition = petrinetGraph.addTransition("Empty");
+				petrinetGraph.addArc(newPlace, outTransition);
+				petrinetGraph.addArc(newTransition, newPlace);
+				petrinetGraph.addArc(place, newTransition);
+			}
+		}
 	}
 	
 	/**
@@ -612,13 +663,13 @@ public class PetriNet2BPMNConverter {
 	 * @param petrinetGraph
 	 * @return
 	 */
-//	private Set<Place> collectInPlaces(Transition transition, PetrinetGraph petrinetGraph) {
-//		Set<Place> inPlaces = new HashSet<Place>();
-//		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges 
-//			= petrinetGraph.getInEdges(transition);
-//		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges){
-//			inPlaces.add((Place)inEdge.getSource());
-//		}
-//		return inPlaces;
-//	}
+	private Set<Place> collectInPlaces(Transition transition, PetrinetGraph petrinetGraph) {
+		Set<Place> inPlaces = new HashSet<Place>();
+		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges 
+			= petrinetGraph.getInEdges(transition);
+		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges){
+			inPlaces.add((Place)inEdge.getSource());
+		}
+		return inPlaces;
+	}
 }
