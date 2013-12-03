@@ -48,5 +48,7 @@
 	<classpathentry kind="lib" path="packagelib/PetriNets.jar"/>
 	<classpathentry kind="lib" path="packagelib/PNAnalysis.jar"/>
 	<classpathentry kind="lib" path="packagelib/ProcessTree.jar"/>
+	<classpathentry kind="lib" path="packagelib/Flex.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
