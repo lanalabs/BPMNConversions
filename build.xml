@@ -138,6 +138,7 @@
 							<dependency name="PetriNets"/>
 							<dependency name="PNAnalysis"/>
 							<dependency name="ProcessTree"/>
+							<dependency name="Flex"/>
 						</package>
 					</packages>
 				</echoxml>
