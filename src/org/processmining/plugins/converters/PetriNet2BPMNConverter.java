@@ -52,6 +52,7 @@ public class PetriNet2BPMNConverter {
 	
 	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
 	private static final String PARALLEL_GATEWAY = "Parallel gateway";
+	private static final String EMPTY = "Empty";
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Petri net to BPMN", requiredParameterLabels = { 0 })
@@ -82,6 +83,9 @@ public class PetriNet2BPMNConverter {
 		
 		// Convert Petri net to a BPMN diagram
 		Map<String, Activity> convertionMap = convert(petrinetGraph, bpmnDiagram);
+		
+		// Remove silent activities
+		removeSilentActivities(convertionMap, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -139,7 +143,7 @@ public class PetriNet2BPMNConverter {
 				Transition outTransition = (Transition)outArc.getTarget();
 				petrinetGraph.removeEdge(outArc);
 				Place newPlace = petrinetGraph.addPlace("");
-				Transition newTransition = petrinetGraph.addTransition("Empty");
+				Transition newTransition = petrinetGraph.addTransition(EMPTY);
 				petrinetGraph.addArc(newPlace, outTransition);
 				petrinetGraph.addArc(newTransition, newPlace);
 				petrinetGraph.addArc(place, newTransition);
@@ -671,5 +675,34 @@ public class PetriNet2BPMNConverter {
 			inPlaces.add((Place)inEdge.getSource());
 		}
 		return inPlaces;
+	}
+	
+	/**
+	 * Remove silent activities
+	 * @param conversionMap
+	 * @param diagram
+	 */
+	private void removeSilentActivities(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
+		Collection<Activity> allActivities = new HashSet<Activity>();
+		allActivities.addAll(diagram.getActivities());
+		for(Activity activity : allActivities) {
+			if(EMPTY.equals(activity.getLabel())) {
+				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges 
+					= diagram.getInEdges(activity);
+				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges 
+				= diagram.getOutEdges(activity);
+				BPMNNode source = inEdges.iterator().next().getSource();
+				BPMNNode target = outEdges.iterator().next().getTarget();
+				diagram.addFlow(source, target, "");
+				diagram.removeActivity(activity);
+				Set<String> idToRemove = new HashSet<String>(); 
+				for(String id : conversionMap.keySet()) {
+					if(activity.equals(conversionMap.get(id))) {
+						idToRemove.add(id);
+					}
+				}
+				conversionMap.remove(idToRemove);
+			}
+		}
 	}
 }
