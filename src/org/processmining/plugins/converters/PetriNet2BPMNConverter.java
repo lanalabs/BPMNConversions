@@ -46,7 +46,7 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
  * Jul 18, 2013
  */
 @Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, 
-returnLabels = { "BPMN Diagram,", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, 
+returnLabels = { "BPMN Diagram, ", "Conversion map"}, returnTypes = { BPMNDiagram.class, Map.class}, 
 userAccessible = true, help = "Converts Petri net to BPMN diagram")
 public class PetriNet2BPMNConverter {
 	
@@ -82,10 +82,10 @@ public class PetriNet2BPMNConverter {
 		}
 		
 		// Convert Petri net to a BPMN diagram
-		Map<String, Activity> convertionMap = convert(petrinetGraph, bpmnDiagram);
+		Map<String, Activity> conversionMap = convert(petrinetGraph, bpmnDiagram);
 		
 		// Remove silent activities
-		removeSilentActivities(convertionMap, bpmnDiagram);
+		removeSilentActivities(conversionMap, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -94,9 +94,9 @@ public class PetriNet2BPMNConverter {
 		connectionManager.addConnection(new BPMNConversionConnection("Connection between "
 				+ "BPMN model" + bpmnDiagram.getLabel()
 				+ ", Petri net" + petrinetGraph.getLabel(),
-				bpmnDiagram, petrinetGraph, convertionMap));
+				bpmnDiagram, petrinetGraph, conversionMap));
 		
-		return new Object[] {bpmnDiagram, convertionMap};
+		return new Object[] {bpmnDiagram, conversionMap};
 	}
 	
 	/**
@@ -697,11 +697,13 @@ public class PetriNet2BPMNConverter {
 				diagram.removeActivity(activity);
 				Set<String> idToRemove = new HashSet<String>(); 
 				for(String id : conversionMap.keySet()) {
-					if(activity.equals(conversionMap.get(id))) {
+					if(activity.getId().equals(conversionMap.get(id))) {
 						idToRemove.add(id);
 					}
 				}
-				conversionMap.remove(idToRemove);
+				for(String id : idToRemove) {
+					conversionMap.remove(id);
+				}
 			}
 		}
 	}
