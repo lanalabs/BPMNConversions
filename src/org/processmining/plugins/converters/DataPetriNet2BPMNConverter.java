@@ -81,6 +81,9 @@ public class DataPetriNet2BPMNConverter {
 		// Add guards to BPMN diagram
 		addGuards(dataPetriNet, dataObjectsMap, transitionsMap, conversionMap, bpmnDiagram);
 		
+		//Remove invisible transitions
+		removeInvisibleTransitions(dataPetriNet, transitionsMap, conversionMap, bpmnDiagram);
+		
 		progress.setCaption("Getting BPMN Visualization");
 		
 		// Add connection 
@@ -149,15 +152,59 @@ public class DataPetriNet2BPMNConverter {
 			BPMNDiagram bpmnDiagram) {
 		for(Transition transition : dataPetriNet.getTransitions()) {
 			if(transition instanceof PNWDTransition) {
-				PNWDTransition pnwdTransition = (PNWDTransition)transition;
+				PNWDTransition pnwdTransition = (PNWDTransition) transition;
 				String guard = pnwdTransition.getGuardAsString();
-				Activity activity = conversionMap.get(transitionsMap.get(transition).getId().toString());
-				Flow incomingFlow = null;
-				for(BPMNEdge edge : bpmnDiagram.getInEdges(activity)) {
-					if(edge instanceof Flow) {
-						incomingFlow = (Flow)bpmnDiagram.getInEdges(activity).iterator().next();					
-						setGuardForFlow(incomingFlow, guard, bpmnDiagram);
+				if (guard != null) {
+					Activity activity = conversionMap.get(transitionsMap.get(transition).getId().toString());
+					Flow incomingFlow = null;
+					for (BPMNEdge edge : bpmnDiagram.getInEdges(activity)) {
+						if (edge instanceof Flow) {
+							incomingFlow = (Flow) edge;
+							setGuardForFlow(incomingFlow, guard, bpmnDiagram);
+						}
 					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Remove Invisible transitions
+	 * @param dataPetriNet
+	 * @param transitionsMap
+	 * @param conversionMap
+	 * @param bpmnDiagram
+	 */
+	private void removeInvisibleTransitions(DataPetriNet dataPetriNet,
+			Map<Transition, Transition> transitionsMap, Map<String, Activity> conversionMap,
+			BPMNDiagram bpmnDiagram) {		
+		for (Transition transition : dataPetriNet.getTransitions()) {
+			if (transition instanceof PNWDTransition) {
+				PNWDTransition pnwdTransition = (PNWDTransition) transition;
+				if(pnwdTransition.isInvisible()) {
+					Activity activity = conversionMap.get(transitionsMap.get(transition).getId().toString());
+					
+					// Retrieve incoming, outgoing flows and guard
+					String guard = null;
+					BPMNEdge incomingFlow = null;
+					BPMNEdge outgoingFlow = null;
+					for (BPMNEdge edge : bpmnDiagram.getInEdges(activity)) {
+						if (edge instanceof Flow) {
+							guard =edge.getLabel();
+							incomingFlow =(Flow)edge;
+						}
+					}
+					for (BPMNEdge edge : bpmnDiagram.getOutEdges(activity)) {
+						if (edge instanceof Flow) {
+							outgoingFlow =(Flow)edge;
+						}
+					}
+					
+					// Remove activity and add new sequence flow
+					BPMNNode source = (BPMNNode)incomingFlow.getSource();
+					BPMNNode target = (BPMNNode)outgoingFlow.getTarget();
+					bpmnDiagram.removeActivity(activity);
+					bpmnDiagram.addFlow(source, target, guard);
 				}
 			}
 		}
@@ -170,26 +217,18 @@ public class DataPetriNet2BPMNConverter {
 	 * @param bpmnDiagram
 	 */
 	private void setGuardForFlow(Flow flow, String guard, BPMNDiagram bpmnDiagram) {
-		BPMNNode predcessor = flow.getSource();
-		if(predcessor instanceof Gateway) {
-				if (((Gateway)predcessor).getGatewayType().equals(GatewayType.DATABASED)) {
-					BPMNNode source = flow.getSource();
-					BPMNNode target = flow.getTarget();
-					String label = ((flow.getLabel() != null)
-							&&(!flow.getLabel().equals("")))?
-									(flow.getLabel() + " " + guard) : guard;
-					bpmnDiagram.removeEdge(flow);
-					bpmnDiagram.addFlow(source, target, label);
-			} else if(((Gateway)predcessor).getGatewayType().equals(GatewayType.PARALLEL)) {
-				for(BPMNEdge andIncomingFlow : bpmnDiagram.getInEdges(predcessor)) {
-					if(andIncomingFlow instanceof Flow) {
-						BPMNNode andPredcessor = (BPMNNode)andIncomingFlow.getSource();
-						if(((Gateway)andPredcessor).getGatewayType().equals(GatewayType.DATABASED)) {
-							String label = ((andIncomingFlow.getLabel() != null)
-									&&(!andIncomingFlow.getLabel().equals("")))?
-											(andIncomingFlow.getLabel() + " " + guard) : guard;
-							bpmnDiagram.removeEdge(andIncomingFlow);
-							bpmnDiagram.addFlow(andPredcessor, predcessor, label);
+		BPMNNode source = flow.getSource();
+		if (source instanceof Gateway) {
+			if (((Gateway) source).getGatewayType().equals(GatewayType.DATABASED)) {
+				flow.setLabel(guard);
+			} else if (((Gateway) source).getGatewayType().equals(GatewayType.PARALLEL)) {
+				for (BPMNEdge andIncomingFlow : bpmnDiagram.getInEdges(source)) {
+					if (andIncomingFlow instanceof Flow) {
+						BPMNNode andPredcessor = (BPMNNode) andIncomingFlow.getSource();
+						if(andPredcessor instanceof Gateway) {
+							if (((Gateway) andPredcessor).getGatewayType().equals(GatewayType.DATABASED)) {
+								flow.setLabel(guard);
+							}
 						}
 					}
 				}

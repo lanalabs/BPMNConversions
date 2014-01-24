@@ -35,9 +35,12 @@ import org.processmining.models.graphbased.directed.petrinet.ResetInhibitorNet;
 import org.processmining.models.graphbased.directed.petrinet.ResetNet;
 import org.processmining.models.graphbased.directed.petrinet.analysis.NetAnalysisInformation;
 import org.processmining.models.graphbased.directed.petrinet.analysis.NetAnalysisInformation.UnDetBool;
+import org.processmining.models.graphbased.directed.petrinet.elements.Arc;
+import org.processmining.models.graphbased.directed.petrinet.elements.InhibitorArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
+import org.processmining.models.graphbased.directed.petrinet.impl.ResetInhibitorNetImpl;
 
 /**
  * Conversion of a Petri net to BPMN model 
@@ -63,11 +66,15 @@ public class PetriNet2BPMNConverter {
 		
 		BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("BPMN diagram for " 
 				+ petrinetGraph.getLabel());
+		// Clone to Petri net
+		Object[] cloneResult = cloneToPetrinet(petrinetGraph);
+		PetrinetGraph clonePetrinet = (PetrinetGraph)cloneResult[0];
+		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>)cloneResult[1];
 		
 		// Check whether Petri net without reset arcs is a free-choice net
-		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(petrinetGraph);
-		boolean isFreeChoice = petriNetIsFreeChoice(context, petrinetGraph);
-		restoreResetArcs(deletedResetArcs, petrinetGraph);
+		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(clonePetrinet);
+		boolean isFreeChoice = petriNetIsFreeChoice(context, clonePetrinet);
+		restoreResetArcs(deletedResetArcs, clonePetrinet);
 		
 		//TODO: Verify that the Petri net is a Workflow net
 		// If Petri net is not a free-choice net it will be transformed
@@ -78,14 +85,17 @@ public class PetriNet2BPMNConverter {
 			JPanel warningPanel = new JPanel();
 			warningPanel.add(new JLabel(nonFreeChoiceMessage));
 			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
-			convertToResemblingFreeChoice(petrinetGraph);
+			convertToResemblingFreeChoice(clonePetrinet);
 		}
 		
 		// Convert Petri net to a BPMN diagram
-		Map<String, Activity> conversionMap = convert(petrinetGraph, bpmnDiagram);
+		Map<String, Activity> conversionMap = convert(clonePetrinet, bpmnDiagram);
 		
 		// Remove silent activities
 		removeSilentActivities(conversionMap, bpmnDiagram);
+		
+		// Rebuild conversion map to restore connections with the initial Petri net 
+		conversionMap = rebuildConversionMap(conversionMap, transitionsMap);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -97,6 +107,22 @@ public class PetriNet2BPMNConverter {
 				bpmnDiagram, petrinetGraph, conversionMap));
 		
 		return new Object[] {bpmnDiagram, conversionMap};
+	}
+	
+	/**
+	 * Rebuilding conversion map to restore connections with the initial Petri net 
+	 * @param conversionMap
+	 * @param transitionsMap
+	 * @return
+	 */
+	private Map<String, Activity> rebuildConversionMap(Map<String, Activity> conversionMap, 
+			Map<Transition, Transition> transitionsMap) {
+		Map<String, Activity> newConversionMap = new HashMap<String, Activity>();
+		for(Transition transition : transitionsMap.keySet()) {
+			newConversionMap.put(transition.getId().toString(),
+					conversionMap.get(transitionsMap.get(transition).getId().toString()));
+		}
+		return newConversionMap;
 	}
 	
 	/**
@@ -706,5 +732,45 @@ public class PetriNet2BPMNConverter {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Clone Petri net
+	 * @param dataPetriNet
+	 * @return
+	 */
+	private Object[] cloneToPetrinet(PetrinetGraph petriNet) {
+		ResetInhibitorNet clonePetriNet = new ResetInhibitorNetImpl(petriNet.getLabel());
+		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
+		Map<Place, Place> placesMap = new HashMap<Place, Place>();
+		
+		for(Transition transition : petriNet.getTransitions()) {
+			transitionsMap.put(transition, clonePetriNet.addTransition(transition.getLabel()));
+		}
+		for(Place place : petriNet.getPlaces()) {
+			placesMap.put(place, clonePetriNet.addPlace(place.getLabel()));
+		}
+		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : 
+			petriNet.getEdges()) {
+			if(edge instanceof InhibitorArc) {
+				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {					
+					clonePetriNet.addInhibitorArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
+				}
+			}
+			if(edge instanceof ResetArc) {
+				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {
+					clonePetriNet.addResetArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
+				}
+			}
+			if(edge instanceof Arc) {
+				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {
+					clonePetriNet.addArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
+				}
+				if ((edge.getSource() instanceof Transition) && (edge.getTarget() instanceof Place)) {
+					clonePetriNet.addArc(transitionsMap.get(edge.getSource()), placesMap.get(edge.getTarget()));
+				}
+			}
+		}
+		return new Object[]{clonePetriNet, transitionsMap};
 	}
 }
