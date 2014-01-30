@@ -40,7 +40,7 @@ public class FlexToBPMNConversion {
 	private Map<BPMNEdge<BPMNNode, BPMNNode>, BPMNNode> mapOfSources
 		= new HashMap<BPMNEdge<BPMNNode, BPMNNode>, BPMNNode>();
 
-	private static Map<String, Flow> flowMap = new HashMap<String, Flow>();
+	//private static Map<String, Flow> flowMap = new HashMap<String, Flow>();
 	@UITopiaVariant(affiliation = "HSE", author = "Anna Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "BPMN 2.0 Conversion", requiredParameterLabels = { 0 })
 	public BPMNDiagram converter(UIPluginContext context, Flex model) {
@@ -305,9 +305,9 @@ public class FlexToBPMNConversion {
 				firstNode = andJoin;
 			}
 			for(FlexNode flexNode : incomingBinding) {
-				BPMNEdge edgeToDelete  = retrieveConnectingEdge(flexNode, entry, id2node, bpmn);
+				BPMNEdge<?,?> edgeToDelete  = retrieveConnectingEdge(flexNode, entry, id2node, bpmn);
 				if(edgeToDelete != null) {
-					BPMNNode sourceNode = (BPMNNode)edgeToDelete.getSource();					
+					BPMNNode sourceNode = edgeToDelete.getSource();					
 					bpmn.removeEdge(edgeToDelete);
 					bpmn.addFlow(sourceNode, firstNode, "");
 				}
@@ -323,9 +323,9 @@ public class FlexToBPMNConversion {
 	 * @param bpmn
 	 * @return
 	 */
-	private BPMNEdge retrieveConnectingEdge(FlexNode source, FlexNode target, Map<String, BPMNNode> id2node,
+	private BPMNEdge<?,?> retrieveConnectingEdge(FlexNode source, FlexNode target, Map<String, BPMNNode> id2node,
 			BPMNDiagram bpmn) {
-		for (BPMNEdge bpmnEdge : bpmn.getInEdges(id2node.get("ID" + target.getId()))) {
+		for (BPMNEdge<?,?> bpmnEdge : bpmn.getInEdges(id2node.get("ID" + target.getId()))) {
 			BPMNNode node = mapOfSources.get(bpmnEdge);
 			if (node != null && node.equals((id2node).get("ID" + source.getId()))) {
 				return bpmnEdge;

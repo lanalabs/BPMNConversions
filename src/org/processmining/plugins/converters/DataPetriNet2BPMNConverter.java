@@ -41,6 +41,7 @@ returnLabels = { "BPMN Diagram"}, returnTypes = { BPMNDiagram.class},
 userAccessible = true, help = "Converts Data Petri net to BPMN diagram")
 public class DataPetriNet2BPMNConverter {
 	
+	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Data Petri net to BPMN", requiredParameterLabels = { 0 })
 	public BPMNDiagram convert(UIPluginContext context, DataPetriNet dataPetriNet) {
@@ -157,7 +158,7 @@ public class DataPetriNet2BPMNConverter {
 				if (guard != null) {
 					Activity activity = conversionMap.get(transitionsMap.get(transition).getId().toString());
 					Flow incomingFlow = null;
-					for (BPMNEdge edge : bpmnDiagram.getInEdges(activity)) {
+					for (BPMNEdge<?,?> edge : bpmnDiagram.getInEdges(activity)) {
 						if (edge instanceof Flow) {
 							incomingFlow = (Flow) edge;
 							setGuardForFlow(incomingFlow, guard, bpmnDiagram);
@@ -186,23 +187,23 @@ public class DataPetriNet2BPMNConverter {
 					
 					// Retrieve incoming, outgoing flows and guard
 					String guard = null;
-					BPMNEdge incomingFlow = null;
-					BPMNEdge outgoingFlow = null;
-					for (BPMNEdge edge : bpmnDiagram.getInEdges(activity)) {
+					BPMNEdge<?,?> incomingFlow = null;
+					BPMNEdge<?,?> outgoingFlow = null;
+					for (BPMNEdge<?,?> edge : bpmnDiagram.getInEdges(activity)) {
 						if (edge instanceof Flow) {
 							guard =edge.getLabel();
-							incomingFlow =(Flow)edge;
+							incomingFlow =edge;
 						}
 					}
-					for (BPMNEdge edge : bpmnDiagram.getOutEdges(activity)) {
+					for (BPMNEdge<?,?> edge : bpmnDiagram.getOutEdges(activity)) {
 						if (edge instanceof Flow) {
-							outgoingFlow =(Flow)edge;
+							outgoingFlow =edge;
 						}
 					}
 					
 					// Remove activity and add new sequence flow
-					BPMNNode source = (BPMNNode)incomingFlow.getSource();
-					BPMNNode target = (BPMNNode)outgoingFlow.getTarget();
+					BPMNNode source = incomingFlow.getSource();
+					BPMNNode target = outgoingFlow.getTarget();
 					bpmnDiagram.removeActivity(activity);
 					bpmnDiagram.addFlow(source, target, guard);
 				}
@@ -222,9 +223,9 @@ public class DataPetriNet2BPMNConverter {
 			if (((Gateway) source).getGatewayType().equals(GatewayType.DATABASED)) {
 				flow.setLabel(guard);
 			} else if (((Gateway) source).getGatewayType().equals(GatewayType.PARALLEL)) {
-				for (BPMNEdge andIncomingFlow : bpmnDiagram.getInEdges(source)) {
+				for (BPMNEdge<?,?> andIncomingFlow : bpmnDiagram.getInEdges(source)) {
 					if (andIncomingFlow instanceof Flow) {
-						BPMNNode andPredcessor = (BPMNNode) andIncomingFlow.getSource();
+						BPMNNode andPredcessor = andIncomingFlow.getSource();
 						if(andPredcessor instanceof Gateway) {
 							if (((Gateway) andPredcessor).getGatewayType().equals(GatewayType.DATABASED)) {
 								flow.setLabel(guard);

@@ -31,9 +31,9 @@ import org.processmining.models.semantics.petrinet.Marking;
  */
 public class BPMN2PetriNetConverter {
 	
-	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
-	private static final String PARALLEL_GATEWAY = "Parallel gateway";
-	private static final String EMPTY = "Empty";
+//	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
+//	private static final String PARALLEL_GATEWAY = "Parallel gateway";
+//	private static final String EMPTY = "Empty";
 	
 	private BPMNDiagram bpmn;
 	private Petrinet net;

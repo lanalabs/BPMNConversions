@@ -180,8 +180,8 @@ public class ResetArcs2BPMNConverter {
 				bpmnDiagram.getInEdges(catchingActivity);
 		
 		// Catching activity has only one incoming edge by the construction
-		AbstractDirectedGraphEdge errorEdge = errorEdges.iterator().next(); 
-		innerNodes.add((AbstractDirectedGraphNode)errorEdge.getSource());
+		AbstractDirectedGraphEdge<?,?> errorEdge = errorEdges.iterator().next(); 
+		innerNodes.add(errorEdge.getSource());
 		bpmnDiagram.removeEdge(errorEdge);
 		
 		SubprocessDiscovery subProcessDiscovery = new SubprocessDiscovery(bpmnDiagram, startEvent, endEvent);
@@ -214,9 +214,9 @@ public class ResetArcs2BPMNConverter {
 				((BPMNNode)bpmnNode).setParentSubprocess(subprocess);
 			}
 			if(bpmnNode instanceof BPMNEdge) {
-				((BPMNEdge)bpmnNode).setParent(subprocess);
+				((BPMNEdge<?,?>)bpmnNode).setParent(subprocess);
 			}
-			subprocess.addChild((ContainableDirectedGraphElement)bpmnNode);
+			subprocess.addChild(bpmnNode);
 		}
 
 		// Connect subprocess with other nodes
@@ -254,8 +254,8 @@ public class ResetArcs2BPMNConverter {
 			targetNode = inGateway;
 			bpmnDiagram.addFlow(inGateway, subProcess, "");
 		}
-		for (BPMNEdge inEdge : inEdges) {
-			BPMNNode sourceNode = (BPMNNode)inEdge.getSource();
+		for (BPMNEdge<?,?> inEdge : inEdges) {
+			BPMNNode sourceNode = inEdge.getSource();
 			bpmnDiagram.addFlow(sourceNode, targetNode, "");
 			bpmnDiagram.removeEdge(inEdge);
 		}
@@ -271,8 +271,8 @@ public class ResetArcs2BPMNConverter {
 			sourceNode = outGateway;
 			bpmnDiagram.addFlow(subProcess, outGateway, "");
 		}
-		for (BPMNEdge outEdge : outEdges) {
-			targetNode = (BPMNNode)outEdge.getTarget();
+		for (BPMNEdge<?,?> outEdge : outEdges) {
+			targetNode = outEdge.getTarget();
 			bpmnDiagram.addFlow(sourceNode, targetNode, "");
 			bpmnDiagram.removeEdge(outEdge);
 		}
@@ -359,6 +359,7 @@ public class ResetArcs2BPMNConverter {
 	 * @param bpmnDiagram
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	private Map<String, Activity> obtainConversionMap(UIPluginContext context, BPMNDiagram bpmnDiagram) {
 		
 		Map<String, Activity> conversionMap = null;

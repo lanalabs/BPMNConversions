@@ -165,7 +165,7 @@ public class PetriNet2BPMNConverter {
 	 */
 	private void splitNonFreePlaces(PetrinetGraph petrinetGraph, Set<Place> nonFreePlaces) {
 		for (Place place : nonFreePlaces) {
-			for(PetrinetEdge outArc : petrinetGraph.getOutEdges(place)) {
+			for(PetrinetEdge<?,?> outArc : petrinetGraph.getOutEdges(place)) {
 				Transition outTransition = (Transition)outArc.getTarget();
 				petrinetGraph.removeEdge(outArc);
 				Place newPlace = petrinetGraph.addPlace("");
