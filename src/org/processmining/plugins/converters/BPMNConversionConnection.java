@@ -15,7 +15,7 @@ public class BPMNConversionConnection extends AbstractConnection {
 	public static String PETRI_NET = "Petri net";
 	public static String DATA_PETRI_NET = "Data Petri net";
 	public static String PROCESS_TREE = "Process tree";
-	public static String CONVERSION_MAP = "Process tree";
+	public static String CONVERSION_MAP = "Conversion map";
 	
 	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
 			Map<String, Activity> conversionMap) {
