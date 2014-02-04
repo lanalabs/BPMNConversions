@@ -3,12 +3,14 @@ package org.processmining.plugins.converters;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.models.graphbased.NodeID;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
@@ -53,7 +55,7 @@ public class ProcessTree2BPMNConverter {
 				+ tree.getName());
 
 		// Convert Process tree to a BPMN diagram
-		Map<Activity, Node> convertionMap = convert(tree, bpmnDiagram);
+		Map<BPMNNode, Node> convertionMap = convert(tree, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -64,7 +66,16 @@ public class ProcessTree2BPMNConverter {
 //				+ ", Process tree" + tree.getName(),
 //				bpmnDiagram, tree, convertionMap));
 		
-		return new Object[] {bpmnDiagram, convertionMap};
+		Map<NodeID, UUID> idMap = retrieveIdMap(convertionMap);
+		return new Object[] {bpmnDiagram, idMap};
+	}
+	
+	private Map<NodeID, UUID> retrieveIdMap(Map<BPMNNode, Node> convertionMap) {
+		Map<NodeID, UUID> idMap = new HashMap<NodeID, UUID>();
+		for(BPMNNode bpmnNode : convertionMap.keySet()) {
+			idMap.put(bpmnNode.getId(), convertionMap.get(bpmnNode).getID());
+		}
+		return idMap;
 	}
 	
 	/**
@@ -74,10 +85,10 @@ public class ProcessTree2BPMNConverter {
 	 * @param bpmnDiagram
 	 * @return
 	 */
-	private Map<Activity, Node> convert(ProcessTree tree, BPMNDiagram bpmnDiagram) {
+	private Map<BPMNNode, Node> convert(ProcessTree tree, BPMNDiagram bpmnDiagram) {
 
 		// Map between BPMN diagram activities and Process tree nodes
-		Map<Activity, Node> conversionMap = new HashMap<Activity, Node>();
+		Map<BPMNNode, Node> conversionMap = new HashMap<BPMNNode, Node>();
 
 		// Create initial elements
 		org.processmining.models.graphbased.directed.bpmn.elements.Event startEvent 
@@ -101,21 +112,41 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandNodes(Map<Activity, Node> conversionMap, ProcessTree tree,
+	private void expandNodes(Map<BPMNNode, Node> conversionMap, ProcessTree tree,
 			BPMNDiagram bpmnDiagram) {
-		if (!conversionMap.isEmpty()) {
-			Activity activity = conversionMap.keySet().iterator().next();
-			if(PROCESS_TREE_INTERNAL_NODE.equals(activity.getLabel())) {
+		Activity activity = takeFirstInternalActivity(conversionMap);
+		if (activity != null) {
+			if (PROCESS_TREE_INTERNAL_NODE.equals(activity.getLabel())) {
 				Node treeNode = conversionMap.get(activity);
-				if(treeNode instanceof Task) {
-					expandTask(conversionMap, activity, (Task)treeNode, tree, bpmnDiagram);
-				} else if(treeNode instanceof Event) {
-					expandEvent(conversionMap, activity, (Event)treeNode, tree, bpmnDiagram);
-				} else if(treeNode instanceof Block) {
-					expandBlock(conversionMap, activity, (Block)treeNode, tree, bpmnDiagram);
+				if (treeNode instanceof Task) {
+					expandTask(conversionMap, activity, (Task) treeNode, tree, bpmnDiagram);
+				} else if (treeNode instanceof Event) {
+					expandEvent(conversionMap, activity, (Event) treeNode, tree, bpmnDiagram);
+				} else if (treeNode instanceof Block) {
+					expandBlock(conversionMap, activity, (Block) treeNode, tree, bpmnDiagram);
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Take first internal activity from conversion map
+	 * 
+	 * @param conversionMap
+	 * @return
+	 */
+	private Activity takeFirstInternalActivity(Map<BPMNNode, Node> conversionMap) {
+		Activity activity = null;
+		if (!conversionMap.isEmpty()) {
+			for (BPMNNode bpmnNode : conversionMap.keySet()) {
+				if(bpmnNode instanceof Activity) {
+					if(PROCESS_TREE_INTERNAL_NODE.equals(bpmnNode.getLabel())) {
+						activity = (Activity)bpmnNode;
+					}
+				}
+			}
+		}
+		return activity;
 	}
 	
 	/**
@@ -127,7 +158,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandBlock(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
+	private void expandBlock(Map<BPMNNode, Node> conversionMap, Activity activity, Block blockNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram) {	
 		switch(tree.getType(blockNode)) {
 			case XOR: {
@@ -175,7 +206,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandTask(Map<Activity, Node> conversionMap, Activity activity, Task taskNode, 
+	private void expandTask(Map<BPMNNode, Node> conversionMap, Activity activity, Task taskNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram) {	
 		
 		// Delete activity and corresponding incoming and outgoing flows
@@ -191,6 +222,7 @@ public class ProcessTree2BPMNConverter {
 		bpmnDiagram.addFlow(newActivity, target, "");	
 		
 		conversionMap.remove(activity);
+		conversionMap.put(newActivity, taskNode);
 		expandNodes(conversionMap, tree, bpmnDiagram);
 	}
 	
@@ -203,7 +235,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandEvent(Map<Activity, Node> conversionMap, Activity activity, Event eventNode, 
+	private void expandEvent(Map<BPMNNode, Node> conversionMap, Activity activity, Event eventNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram) {	
 		
 		// Delete activity and corresponding incoming and outgoing flows
@@ -248,7 +280,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param bpmnDiagram
 	 * @param gatewayType
 	 */
-	private void expandGate(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
+	private void expandGate(Map<BPMNNode, Node> conversionMap, Activity activity, Block blockNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram, GatewayType gatewayType) {
 		
 		// Delete activity and corresponding incoming and outgoing flows
@@ -260,6 +292,7 @@ public class ProcessTree2BPMNConverter {
 		if(gatewayType.equals(GatewayType.EVENTBASED)) {
 			gatewayType = GatewayType.DATABASED;
 		}
+		conversionMap.put(split, blockNode);
 		Gateway join = bpmnDiagram.addGateway("", gatewayType);
 		bpmnDiagram.addFlow(source, split, currentLabel);		                                                                                                                                            
 		bpmnDiagram.addFlow(join, target, "");	
@@ -283,7 +316,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandSequence(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
+	private void expandSequence(Map<BPMNNode, Node> conversionMap, Activity activity, Block blockNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram) {
 		
 		// Delete activity and corresponding incoming and outgoing flows
@@ -350,7 +383,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param gatewayType
 	 * @param isDeferred
 	 */
-	private void expandLoop(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
+	private void expandLoop(Map<BPMNNode, Node> conversionMap, Activity activity, Block blockNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram, boolean isDeferred) {
 		
 		// Delete activity and corresponding incoming and outgoing flows
@@ -365,6 +398,8 @@ public class ProcessTree2BPMNConverter {
 		} else {
 			xorSplit = bpmnDiagram.addGateway("", GatewayType.DATABASED);
 		}
+		
+		conversionMap.put(xorSplit, blockNode);
 		bpmnDiagram.addFlow(source, xorJoin, currentLabel);		                                                                                                                                            
 		
 		// Add loop body
@@ -402,7 +437,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandPlaceholder(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
+	private void expandPlaceholder(Map<BPMNNode, Node> conversionMap, Activity activity, Block blockNode, 
 			ProcessTree tree, BPMNDiagram bpmnDiagram) {
 		
 		// Delete activity and corresponding incoming and outgoing flows
