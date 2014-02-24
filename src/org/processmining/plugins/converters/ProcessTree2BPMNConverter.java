@@ -84,6 +84,9 @@ public class ProcessTree2BPMNConverter {
 		for(BPMNNode bpmnNode : conversionMap.keySet()) {
 			idMap.put(bpmnNode.getId(), conversionMap.get(bpmnNode).getID());
 		}
+		for(UUID org: orgIdMap.keySet()){
+            idMap.put(orgIdMap.get(org).getId(), org);
+		}
 		return idMap;
 	}
 	
