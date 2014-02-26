@@ -51,5 +51,7 @@
 	<classpathentry kind="lib" path="packagelib/Flex.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.4.jar"/>
 	<classpathentry kind="lib" path="packagelib/DataPetriNets.jar"/>
+	<classpathentry kind="lib" path="packagelib/Properties.jar"/>
+	<classpathentry kind="lib" path="packagelib/Widgets.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
