@@ -100,6 +100,7 @@ public class ProcessTree2BPMNConverter {
 		// Add lanes
 		for(Originator originator : tree.getOriginators()) {
 			Swimlane lane = bpmnDiagram.addSwimlane(originator.getName(), null, SwimlaneType.LANE);
+			lane.setPartitionElement(originator.getID().toString());
 			orgIdMap.put(originator.getID(), lane);
 		}		
 	}
@@ -115,9 +116,9 @@ public class ProcessTree2BPMNConverter {
 
 		// Create initial elements
 		org.processmining.models.graphbased.directed.bpmn.elements.Event startEvent 
-			= bpmnDiagram.addEvent("Start", EventType.START, null, null, null);
+			= bpmnDiagram.addEvent("Start", EventType.START, null, null, true, null);
 		org.processmining.models.graphbased.directed.bpmn.elements.Event endEvent 
-			= bpmnDiagram.addEvent("End", EventType.END, null, null, null);
+			= bpmnDiagram.addEvent("End", EventType.END, null, null, true, null);
 		Activity rootActivity = 
 				bpmnDiagram.addActivity(PROCESS_TREE_INTERNAL_NODE, false, false, false, false, false);
 		bpmnDiagram.addFlow(startEvent, rootActivity, "");
@@ -275,7 +276,7 @@ public class ProcessTree2BPMNConverter {
 		// Add new event
 		org.processmining.models.graphbased.directed.bpmn.elements.Event event 
 			= bpmnDiagram.addEvent(eventNode.getMessage(), EventType.INTERMEDIATE, eventTrigger,
-					EventUse.CATCH, null);
+					EventUse.CATCH, true, null);
 		
 		bpmnDiagram.addFlow(source, event, currentLabel);	
 		// Add child
