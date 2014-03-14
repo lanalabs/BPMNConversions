@@ -57,6 +57,7 @@ public class PetriNet2BPMNConverter {
 	private static final String PARALLEL_GATEWAY = "Parallel gateway";
 	private static final String EMPTY = "Empty";
 	
+	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Petri net to BPMN", requiredParameterLabels = { 0 })
 	public Object[] convert(UIPluginContext context, PetrinetGraph petrinetGraph) {
@@ -281,7 +282,12 @@ public class PetriNet2BPMNConverter {
 	private void convertTransitionsToActivities(PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
 			Map<String, Activity> conversionMap) {
 		for (Transition transition : petrinetGraph.getTransitions()) {
-			Activity activity = bpmnDiagram.addActivity(transition.getLabel(), 
+			String label = EMPTY;
+			if (!transition.isInvisible() && transition.getLabel() != null 
+					&& !transition.getLabel().isEmpty()) {
+				label = transition.getLabel();
+			}
+			Activity activity = bpmnDiagram.addActivity(label, 
 					false, false, false, false, false);
 			conversionMap.put(transition.getId().toString(), activity);
 		}
@@ -364,7 +370,7 @@ public class PetriNet2BPMNConverter {
 			}
 		}
 		Event startEvent = 
-				bpmnDiagram.addEvent("START EVENT", EventType.START, null, EventUse.CATCH, null);
+				bpmnDiagram.addEvent("START EVENT", EventType.START, null, EventUse.CATCH, true, null);
 		connectToOutTransitions(startEvent, place, petrinetGraph,bpmnDiagram, conversionMap,
 				convertedPlaces);
 		convertedPlaces.add(place);
@@ -382,7 +388,7 @@ public class PetriNet2BPMNConverter {
 			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
 
 		// Create final event
-		Event endEvent = bpmnDiagram.addEvent("END EVENT", EventType.END, null, EventUse.THROW, null);
+		Event endEvent = bpmnDiagram.addEvent("END EVENT", EventType.END, null, EventUse.THROW, true, null);
 		Set<Transition> inTransitions = collectInTransitions(place, petrinetGraph);
 		
 		// If number of in transition is greater than 1, extra XOR-join should be created
