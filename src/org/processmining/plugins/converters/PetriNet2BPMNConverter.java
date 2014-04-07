@@ -17,6 +17,7 @@ import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.connections.petrinets.structural.FreeChoiceInfoConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
@@ -41,6 +42,7 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.ResetInhibitorNetImpl;
+import org.processmining.models.semantics.petrinet.Marking;
 
 /**
  * Conversion of a Petri net to BPMN model 
@@ -67,17 +69,20 @@ public class PetriNet2BPMNConverter {
 		
 		BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("BPMN diagram for " 
 				+ petrinetGraph.getLabel());
-		// Clone to Petri net
-		Object[] cloneResult = cloneToPetrinet(petrinetGraph);
+		
+		Marking initialMarking = retrieveMarking(context, petrinetGraph);
+		
+		// Clone to Petri net with marking
+		Object[] cloneResult = cloneToPetrinet(petrinetGraph, initialMarking);
 		PetrinetGraph clonePetrinet = (PetrinetGraph)cloneResult[0];
 		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>)cloneResult[1];
+		Marking cloneMarking = (Marking)cloneResult[2];
 		
 		// Check whether Petri net without reset arcs is a free-choice net
 		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(clonePetrinet);
 		boolean isFreeChoice = petriNetIsFreeChoice(context, clonePetrinet);
 		restoreResetArcs(deletedResetArcs, clonePetrinet);
 		
-		//TODO: Verify that the Petri net is a Workflow net
 		// If Petri net is not a free-choice net it will be transformed
 		if (!isFreeChoice) {
 			String nonFreeChoiceMessage = "Initial Petri net is not a free-choice net and "
@@ -88,6 +93,9 @@ public class PetriNet2BPMNConverter {
 			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
 			convertToResemblingFreeChoice(clonePetrinet);
 		}
+		
+		// Convert to a Petri net with one source place if needed
+		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneMarking);
 		
 		// Convert Petri net to a BPMN diagram
 		Map<String, Activity> conversionMap = convert(clonePetrinet, bpmnDiagram);
@@ -108,6 +116,41 @@ public class PetriNet2BPMNConverter {
 				bpmnDiagram, petrinetGraph, conversionMap));
 		
 		return new Object[] {bpmnDiagram, conversionMap};
+	}
+	
+	/**
+	 * Converting an arbitrary Petri net to a Petri net with a single source place
+	 * @param petriNet
+	 * @param marking
+	 */
+	private void convertToPetrinetWithOneSourcePlace(PetrinetGraph petriNet, Marking marking) {
+		Place initialPlace = petriNet.addPlace("");
+		Transition initialTransition = petriNet.addTransition("");
+		initialTransition.setInvisible(true);
+		petriNet.addArc(initialPlace, initialTransition);
+		for (Place place : marking.toList()) {
+			petriNet.addArc(initialTransition, place);
+		}
+	}
+	
+	/**
+	 * Retrieve marking for a Petri net graph
+	 * @param context
+	 * @param petrinetGraph
+	 * @return
+	 */
+	private Marking retrieveMarking(UIPluginContext context, PetrinetGraph petrinetGraph) {
+		Marking marking = null;		
+		try {
+			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager()
+					.getFirstConnection(InitialMarkingConnection.class, context, petrinetGraph);
+			marking = (Marking)initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
+		} catch (ConnectionCannotBeObtained e) {
+			context.log("Can't obtain connection for " + petrinetGraph.getLabel());
+			e.printStackTrace();
+		}
+		
+		return marking;
 	}
 	
 	/**
@@ -170,7 +213,8 @@ public class PetriNet2BPMNConverter {
 				Transition outTransition = (Transition)outArc.getTarget();
 				petrinetGraph.removeEdge(outArc);
 				Place newPlace = petrinetGraph.addPlace("");
-				Transition newTransition = petrinetGraph.addTransition(EMPTY);
+				Transition newTransition = petrinetGraph.addTransition("");
+				newTransition.setInvisible(true);
 				petrinetGraph.addArc(newPlace, outTransition);
 				petrinetGraph.addArc(newTransition, newPlace);
 				petrinetGraph.addArc(place, newTransition);
@@ -745,10 +789,11 @@ public class PetriNet2BPMNConverter {
 	 * @param dataPetriNet
 	 * @return
 	 */
-	private Object[] cloneToPetrinet(PetrinetGraph petriNet) {
+	private Object[] cloneToPetrinet(PetrinetGraph petriNet, Marking marking) {
 		ResetInhibitorNet clonePetriNet = new ResetInhibitorNetImpl(petriNet.getLabel());
 		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 		Map<Place, Place> placesMap = new HashMap<Place, Place>();
+		Marking newMarking = new Marking();
 		
 		for(Transition transition : petriNet.getTransitions()) {
 			transitionsMap.put(transition, clonePetriNet.addTransition(transition.getLabel()));
@@ -777,6 +822,14 @@ public class PetriNet2BPMNConverter {
 				}
 			}
 		}
-		return new Object[]{clonePetriNet, transitionsMap};
+		
+		// Construct marking for the clone Petri net
+		if(marking != null) {
+			for(Place markedPlace : marking.toList()) {
+				newMarking.add(placesMap.get(markedPlace));
+			}
+		}
+		
+		return new Object[]{clonePetriNet, transitionsMap, newMarking};
 	}
 }
