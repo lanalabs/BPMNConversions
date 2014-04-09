@@ -12,6 +12,7 @@ import org.processmining.framework.connections.ConnectionManager;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
@@ -29,6 +30,7 @@ import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetImpl;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataElement;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataPetriNet;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.PNWDTransition;
+import org.processmining.models.semantics.petrinet.Marking;
 
 /**
  * Conversion of a Data Petri net to the BPMN model 
@@ -53,8 +55,8 @@ public class DataPetriNet2BPMNConverter {
 		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 		Map<String, DataObject> dataObjectsMap = new HashMap<String, DataObject>();
 		
-		// Clone petri net not to make recursion
-		Object[] resultOfClone = cloneToPetrinet(dataPetriNet);
+		// Clone petri net not to make a recursion
+		Object[] resultOfClone = cloneToPetrinet(context, dataPetriNet);
 		PetrinetGraph clonePetrinet = (PetrinetGraph)resultOfClone[0];
 		transitionsMap = (Map<Transition, Transition>)resultOfClone[1];
 		
@@ -242,7 +244,7 @@ public class DataPetriNet2BPMNConverter {
 	 * @param dataPetriNet
 	 * @return
 	 */
-	private Object[] cloneToPetrinet(DataPetriNet dataPetriNet) {
+	private Object[] cloneToPetrinet(UIPluginContext context, DataPetriNet dataPetriNet) {
 		PetrinetGraph petriNet = new PetrinetImpl(dataPetriNet.getLabel());
 		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 		Map<Place, Place> placesMap = new HashMap<Place, Place>();
@@ -262,6 +264,25 @@ public class DataPetriNet2BPMNConverter {
 				petriNet.addArc(transitionsMap.get(edge.getSource()), placesMap.get(edge.getTarget()));
 			}
 		}
-		return new Object[] {petriNet, transitionsMap};
+		
+		Marking initialMarking = new Marking();
+		try {
+			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager()
+					.getFirstConnection(InitialMarkingConnection.class, context, dataPetriNet);
+			initialMarking = (Marking)initialMarkingConnection
+					.getObjectWithRole(InitialMarkingConnection.MARKING);
+		} catch (ConnectionCannotBeObtained e) {
+			context.log("Can't obtain connection for " + dataPetriNet.getLabel());
+			e.printStackTrace();
+		}
+		Marking cloneMarking = new Marking();
+		
+		for(Place place: initialMarking.toList()) {
+			cloneMarking.add(placesMap.get(place));
+		}
+	
+		context.getConnectionManager().addConnection(new InitialMarkingConnection(petriNet, cloneMarking));
+		
+		return new Object[] {petriNet, transitionsMap, cloneMarking};
 	}
 }
