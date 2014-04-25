@@ -25,6 +25,7 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
+import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventUse;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
@@ -58,6 +59,9 @@ public class PetriNet2BPMNConverter {
 	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
 	private static final String PARALLEL_GATEWAY = "Parallel gateway";
 	private static final String EMPTY = "Empty";
+	
+	private Place initialPlace;
+	private Transition initialTransition;
 	
 	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
@@ -97,11 +101,20 @@ public class PetriNet2BPMNConverter {
 		// Convert to a Petri net with one source place if needed
 		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneMarking);
 		
+		// Handle transitions without incoming sequence flows
+		handleUnconnectedTransitions(clonePetrinet);
+		
+		// Remove places without incoming sequence flows
+		removeDeadPlaces(clonePetrinet);
+		
 		// Convert Petri net to a BPMN diagram
 		Map<String, Activity> conversionMap = convert(clonePetrinet, bpmnDiagram);
 		
 		// Remove silent activities
 		removeSilentActivities(conversionMap, bpmnDiagram);
+		
+		//Add end events
+		addEndEvents(bpmnDiagram);
 		
 		// Rebuild conversion map to restore connections with the initial Petri net 
 		conversionMap = rebuildConversionMap(conversionMap, transitionsMap);
@@ -124,8 +137,8 @@ public class PetriNet2BPMNConverter {
 	 * @param marking
 	 */
 	private void convertToPetrinetWithOneSourcePlace(PetrinetGraph petriNet, Marking marking) {
-		Place initialPlace = petriNet.addPlace("");
-		Transition initialTransition = petriNet.addTransition("");
+		initialPlace = petriNet.addPlace("");
+		initialTransition = petriNet.addTransition("");
 		initialTransition.setInvisible(true);
 		petriNet.addArc(initialPlace, initialTransition);
 		for (Place place : marking.toList()) {
@@ -134,6 +147,61 @@ public class PetriNet2BPMNConverter {
 	}
 	
 	/**
+	 * Handle transitions without incoming sequence flows
+	 * @param petriNet
+	 */
+	private void handleUnconnectedTransitions(PetrinetGraph petriNet) {
+		for (Transition transition : petriNet.getTransitions()) {
+			if ((petriNet.getInEdges(transition) == null) 
+					|| (petriNet.getInEdges(transition).size() == 0)) {
+				Place newPlace = petriNet.addPlace("");
+				petriNet.addArc(initialTransition, newPlace);
+				petriNet.addArc(newPlace, transition);
+				petriNet.addArc(transition, newPlace);
+			}
+		}
+	}
+	
+	/**
+	 * Remove places without incoming sequence flows and corresponding output transitions
+	 * @param petriNet
+	 */
+	private void removeDeadPlaces(PetrinetGraph petriNet) {
+		boolean hasDeadPlaces;
+		do {
+			hasDeadPlaces = false;
+			for (Place place : petriNet.getPlaces()) {
+				if (place != initialPlace) {
+					if ((petriNet.getInEdges(place) == null) 
+							|| (petriNet.getInEdges(place).size() == 0)) {
+						Collection<Transition> outTransitions = collectOutTransitions(place, petriNet);
+						for(Transition transition : outTransitions) {
+							petriNet.removeTransition(transition);
+						}
+						petriNet.removePlace(place);
+						hasDeadPlaces = true;
+					}
+				}
+			}
+		} while (hasDeadPlaces);
+	}
+	
+	/**
+	 * Add end events to hanging nodes
+	 * @param petrinetGraph
+	 */
+	private void addEndEvents(BPMNDiagram diagram) {
+		for(Activity activity : diagram.getActivities()) {
+			if ((diagram.getOutEdges(activity) == null) 
+				|| (diagram.getOutEdges(activity).size() == 0)) {
+				Event endEvent 
+					= diagram.addEvent("", EventType.END, EventTrigger.NONE, null, true, null);
+				diagram.addFlow(activity, endEvent, "");
+			}
+		}
+	}
+	
+	/**isInitialPlace
 	 * Retrieve marking for a Petri net graph
 	 * @param context
 	 * @param petrinetGraph
@@ -149,7 +217,6 @@ public class PetriNet2BPMNConverter {
 			context.log("Can't obtain connection for " + petrinetGraph.getLabel());
 			e.printStackTrace();
 		}
-		
 		return marking;
 	}
 	
@@ -348,7 +415,7 @@ public class PetriNet2BPMNConverter {
 			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
 		for (Place place : petrinetGraph.getPlaces()) {
 			if (!convertedPlaces.contains(place)) {
-				if (isInitialPlace(place, petrinetGraph)) {
+				if (place == initialPlace) {
 					convertInitialPlace(place, petrinetGraph, bpmnDiagram, conversionMap, 
 							convertedPlaces);
 				} else if(isFinalPlace(place, petrinetGraph)) {
@@ -360,17 +427,6 @@ public class PetriNet2BPMNConverter {
 				}
 			}
 		}
-	}
-	
-	/**
-	 * Check whether the place is initial (does not have incoming arcs)
-	 * @param place
-	 * @param petrinetGraph
-	 * @return
-	 */
-	private boolean isInitialPlace(Place place, PetrinetGraph petrinetGraph) {
-		return ((petrinetGraph.getInEdges(place) == null) 
-				|| (petrinetGraph.getInEdges(place).size() == 0));
 	}
 
 	/**
@@ -403,7 +459,7 @@ public class PetriNet2BPMNConverter {
 		// Collect equivalent places (places with the same set of out transitions)
 		Set<Place> equivalentPlaces = collectEquivalentPlaces(place, petrinetGraph);
 		for (Place equivalentPlace : equivalentPlaces) {
-			if (isInitialPlace(equivalentPlace, petrinetGraph)) {
+			if (equivalentPlace == initialPlace) {
 				// If the equivalent place is initial itself it should not be considered at all
 				convertedPlaces.add(equivalentPlace);
 			} else {
@@ -518,7 +574,7 @@ public class PetriNet2BPMNConverter {
 		allPlaces.add(place);
 		
 		for (Place somePlace : allPlaces) {
-			if (isInitialPlace(somePlace, petrinetGraph)) {
+			if (somePlace == initialPlace) {
 				// If the equivalent place is initial it should not be considered at all
 				convertedPlaces.add(somePlace);
 				continue;
