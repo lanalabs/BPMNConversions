@@ -25,7 +25,6 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
-import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventUse;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
@@ -46,47 +45,44 @@ import org.processmining.models.graphbased.directed.petrinet.impl.ResetInhibitor
 import org.processmining.models.semantics.petrinet.Marking;
 
 /**
- * Conversion of a Petri net to BPMN model 
- *
- * @author Anna Kalenkova
- * Jul 18, 2013
+ * Conversion of a Petri net to BPMN model
+ * 
+ * @author Anna Kalenkova Jul 18, 2013
  */
-@Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, 
-returnLabels = { "BPMN Diagram, ", "Conversion map"}, returnTypes = { BPMNDiagram.class, Map.class}, 
-userAccessible = true, help = "Converts Petri net to BPMN diagram")
+@Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, returnLabels = {
+		"BPMN Diagram, ", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, userAccessible = true, help = "Converts Petri net to BPMN diagram")
 public class PetriNet2BPMNConverter {
-	
+
 	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
 	private static final String PARALLEL_GATEWAY = "Parallel gateway";
 	private static final String EMPTY = "Empty";
-	
+
 	private Place initialPlace;
 	private Transition initialTransition;
-	
+
 	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Petri net to BPMN", requiredParameterLabels = { 0 })
 	public Object[] convert(UIPluginContext context, PetrinetGraph petrinetGraph) {
-		
+
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Petri net To BPMN diagram");
-		
-		BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("BPMN diagram for " 
-				+ petrinetGraph.getLabel());
-		
+
+		BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("BPMN diagram for " + petrinetGraph.getLabel());
+
 		Marking initialMarking = retrieveMarking(context, petrinetGraph);
-		
+
 		// Clone to Petri net with marking
 		Object[] cloneResult = cloneToPetrinet(petrinetGraph, initialMarking);
-		PetrinetGraph clonePetrinet = (PetrinetGraph)cloneResult[0];
-		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>)cloneResult[1];
-		Marking cloneMarking = (Marking)cloneResult[2];
-		
+		PetrinetGraph clonePetrinet = (PetrinetGraph) cloneResult[0];
+		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>) cloneResult[1];
+		Marking cloneMarking = (Marking) cloneResult[2];
+
 		// Check whether Petri net without reset arcs is a free-choice net
 		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(clonePetrinet);
 		boolean isFreeChoice = petriNetIsFreeChoice(context, clonePetrinet);
 		restoreResetArcs(deletedResetArcs, clonePetrinet);
-		
+
 		// If Petri net is not a free-choice net it will be transformed
 		if (!isFreeChoice) {
 			String nonFreeChoiceMessage = "Initial Petri net is not a free-choice net and "
@@ -97,42 +93,43 @@ public class PetriNet2BPMNConverter {
 			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
 			convertToResemblingFreeChoice(clonePetrinet);
 		}
-		
+
 		// Convert to a Petri net with one source place if needed
 		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneMarking);
-		
-		// Handle transitions without incoming sequence flows
+
+		// Handle transitions without incoming and outgoing sequence flows
 		handleUnconnectedTransitions(clonePetrinet);
-		
+
 		// Remove places without incoming sequence flows
 		removeDeadPlaces(clonePetrinet);
-		
+
 		// Convert Petri net to a BPMN diagram
 		Map<String, Activity> conversionMap = convert(clonePetrinet, bpmnDiagram);
-		
-		// Remove silent activities
-		removeSilentActivities(conversionMap, bpmnDiagram);
-		
-		//Add end events
-		addEndEvents(bpmnDiagram);
-		
+
+		// Simplify BPMN diagram
+		simplifyBPMNDiagram(conversionMap, bpmnDiagram);
+
+		//Add end event
+		//addEndEvent(bpmnDiagram);
+
 		// Rebuild conversion map to restore connections with the initial Petri net 
 		conversionMap = rebuildConversionMap(conversionMap, transitionsMap);
-		
+
 		progress.setCaption("Getting BPMN Visualization");
-		
+
 		// Add connection 
 		ConnectionManager connectionManager = context.getConnectionManager();
-		connectionManager.addConnection(new BPMNConversionConnection("Connection between "
-				+ "BPMN model" + bpmnDiagram.getLabel()
-				+ ", Petri net" + petrinetGraph.getLabel(),
-				bpmnDiagram, petrinetGraph, conversionMap));
-		
-		return new Object[] {bpmnDiagram, conversionMap};
+		connectionManager.addConnection(new BPMNConversionConnection("Connection between " + "BPMN model"
+				+ bpmnDiagram.getLabel() + ", Petri net" + petrinetGraph.getLabel(), bpmnDiagram, petrinetGraph,
+				conversionMap));
+
+		return new Object[] { bpmnDiagram, conversionMap };
 	}
-	
+
 	/**
-	 * Converting an arbitrary Petri net to a Petri net with a single source place
+	 * Converting an arbitrary Petri net to a Petri net with a single source
+	 * place
+	 * 
 	 * @param petriNet
 	 * @param marking
 	 */
@@ -145,15 +142,19 @@ public class PetriNet2BPMNConverter {
 			petriNet.addArc(initialTransition, place);
 		}
 	}
-	
+
 	/**
 	 * Handle transitions without incoming sequence flows
+	 * 
 	 * @param petriNet
 	 */
 	private void handleUnconnectedTransitions(PetrinetGraph petriNet) {
 		for (Transition transition : petriNet.getTransitions()) {
-			if ((petriNet.getInEdges(transition) == null) 
-					|| (petriNet.getInEdges(transition).size() == 0)) {
+			if ((petriNet.getOutEdges(transition) == null) || (petriNet.getOutEdges(transition).size() == 0)) {
+				Place newPlace = petriNet.addPlace("");
+				petriNet.addArc(transition, newPlace);
+			}
+			if ((petriNet.getInEdges(transition) == null) || (petriNet.getInEdges(transition).size() == 0)) {
 				Place newPlace = petriNet.addPlace("");
 				petriNet.addArc(initialTransition, newPlace);
 				petriNet.addArc(newPlace, transition);
@@ -161,99 +162,107 @@ public class PetriNet2BPMNConverter {
 			}
 		}
 	}
-	
+
 	/**
-	 * Remove places without incoming sequence flows and corresponding output transitions
+	 * Remove places without incoming sequence flows and corresponding output
+	 * transitions
+	 * 
 	 * @param petriNet
 	 */
 	private void removeDeadPlaces(PetrinetGraph petriNet) {
 		boolean hasDeadPlaces;
+		Set<Place> toRemove = new HashSet<Place>();
 		do {
 			hasDeadPlaces = false;
-			for (Place place : petriNet.getPlaces()) {
+			for (Place place : petriNet.getPlaces()) {			
 				if (place != initialPlace) {
-					if ((petriNet.getInEdges(place) == null) 
-							|| (petriNet.getInEdges(place).size() == 0)) {
+					if ((petriNet.getInEdges(place) == null) || (petriNet.getInEdges(place).size() == 0)) {
 						Collection<Transition> outTransitions = collectOutTransitions(place, petriNet);
-						for(Transition transition : outTransitions) {
+						for (Transition transition : outTransitions) {
 							petriNet.removeTransition(transition);
 						}
-						petriNet.removePlace(place);
+						toRemove.add(place);
 						hasDeadPlaces = true;
 					}
 				}
 			}
 		} while (hasDeadPlaces);
+		for(Place place : toRemove) {
+			petriNet.removePlace(place);
+		}
 	}
-	
+
 	/**
-	 * Add end events to hanging nodes
+	 * Add end event connected with hanging nodes
+	 * 
 	 * @param petrinetGraph
 	 */
-	private void addEndEvents(BPMNDiagram diagram) {
-		for(Activity activity : diagram.getActivities()) {
-			if ((diagram.getOutEdges(activity) == null) 
-				|| (diagram.getOutEdges(activity).size() == 0)) {
-				Event endEvent 
-					= diagram.addEvent("", EventType.END, EventTrigger.NONE, null, true, null);
+	private void addEndEvent(BPMNDiagram diagram) {
+		Event endEvent = diagram.addEvent("END EVENT", EventType.END, null, EventUse.THROW, true, null);
+		for (Activity activity : diagram.getActivities()) {
+			if ((diagram.getOutEdges(activity) == null) || (diagram.getOutEdges(activity).size() == 0)) {
 				diagram.addFlow(activity, endEvent, "");
 			}
 		}
 	}
-	
-	/**isInitialPlace
-	 * Retrieve marking for a Petri net graph
+
+	/**
+	 * isInitialPlace Retrieve marking for a Petri net graph
+	 * 
 	 * @param context
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private Marking retrieveMarking(UIPluginContext context, PetrinetGraph petrinetGraph) {
-		Marking marking = null;		
+		Marking marking = null;
 		try {
-			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager()
-					.getFirstConnection(InitialMarkingConnection.class, context, petrinetGraph);
-			marking = (Marking)initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
+			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager().getFirstConnection(
+					InitialMarkingConnection.class, context, petrinetGraph);
+			marking = (Marking) initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
 		} catch (ConnectionCannotBeObtained e) {
 			context.log("Can't obtain connection for " + petrinetGraph.getLabel());
 			e.printStackTrace();
 		}
 		return marking;
 	}
-	
+
 	/**
-	 * Rebuilding conversion map to restore connections with the initial Petri net 
+	 * Rebuilding conversion map to restore connections with the initial Petri
+	 * net
+	 * 
 	 * @param conversionMap
 	 * @param transitionsMap
 	 * @return
 	 */
-	private Map<String, Activity> rebuildConversionMap(Map<String, Activity> conversionMap, 
+	private Map<String, Activity> rebuildConversionMap(Map<String, Activity> conversionMap,
 			Map<Transition, Transition> transitionsMap) {
 		Map<String, Activity> newConversionMap = new HashMap<String, Activity>();
-		for(Transition transition : transitionsMap.keySet()) {
+		for (Transition transition : transitionsMap.keySet()) {
 			newConversionMap.put(transition.getId().toString(),
 					conversionMap.get(transitionsMap.get(transition).getId().toString()));
 		}
 		return newConversionMap;
 	}
-	
+
 	/**
 	 * Convert to resembling free-choice net
+	 * 
 	 * @param petrinetGraph
 	 */
 	private void convertToResemblingFreeChoice(PetrinetGraph petrinetGraph) {
 		// Set of common places which should be splited
-		Set<Place> nonFreePlaces = new HashSet<Place>();		
+		Set<Place> nonFreePlaces = new HashSet<Place>();
 		//For each pair of transitions
-		for(Transition t1 : petrinetGraph.getTransitions()) {
-			for(Transition t2 : petrinetGraph.getTransitions()) {
+		for (Transition t1 : petrinetGraph.getTransitions()) {
+			for (Transition t2 : petrinetGraph.getTransitions()) {
 				Set<Place> inPlaces1 = collectInPlaces(t1, petrinetGraph);
 				Set<Place> inPlaces2 = collectInPlaces(t2, petrinetGraph);
 				Set<Place> commonPlaces = new HashSet<Place>();
 				boolean hasCommonPlace = false;
 				boolean hasDiffPlaces = false;
-				for(Place p1 : inPlaces1) {
-					for(Place p2 : inPlaces2) {
-						if(p1.equals(p2)){
+				for (Place p1 : inPlaces1) {
+					for (Place p2 : inPlaces2) {
+						if (p1.equals(p2)) {
 							hasCommonPlace = true;
 							commonPlaces.add(p1);
 						} else {
@@ -261,23 +270,24 @@ public class PetriNet2BPMNConverter {
 						}
 					}
 				}
-				if(hasCommonPlace && hasDiffPlaces) {
+				if (hasCommonPlace && hasDiffPlaces) {
 					nonFreePlaces.addAll(commonPlaces);
 				}
 			}
 		}
 		splitNonFreePlaces(petrinetGraph, nonFreePlaces);
 	}
-	
+
 	/**
 	 * Split non-free places
+	 * 
 	 * @param petrinetGraph
 	 * @param nonFreePlaces
 	 */
 	private void splitNonFreePlaces(PetrinetGraph petrinetGraph, Set<Place> nonFreePlaces) {
 		for (Place place : nonFreePlaces) {
-			for(PetrinetEdge<?,?> outArc : petrinetGraph.getOutEdges(place)) {
-				Transition outTransition = (Transition)outArc.getTarget();
+			for (PetrinetEdge<?, ?> outArc : petrinetGraph.getOutEdges(place)) {
+				Transition outTransition = (Transition) outArc.getTarget();
 				petrinetGraph.removeEdge(outArc);
 				Place newPlace = petrinetGraph.addPlace("");
 				Transition newTransition = petrinetGraph.addTransition("");
@@ -288,9 +298,10 @@ public class PetriNet2BPMNConverter {
 			}
 		}
 	}
-	
+
 	/**
 	 * Check whether Petri net is a Free-Choice
+	 * 
 	 * @param context
 	 * @param petrinetGraph
 	 * @return
@@ -299,32 +310,32 @@ public class PetriNet2BPMNConverter {
 		NetAnalysisInformation.FREECHOICE fCRes = null;
 		try {
 			fCRes = context.tryToFindOrConstructFirstObject(NetAnalysisInformation.FREECHOICE.class,
-					FreeChoiceInfoConnection.class, "Free Choice information of " 
-					+ petrinetGraph.getLabel(), petrinetGraph);
+					FreeChoiceInfoConnection.class, "Free Choice information of " + petrinetGraph.getLabel(),
+					petrinetGraph);
 		} catch (ConnectionCannotBeObtained e) {
 			context.log("Can't obtain connection for " + petrinetGraph.getLabel());
 			e.printStackTrace();
 		}
 		return fCRes.getValue().equals(UnDetBool.TRUE);
 	}
-	
+
 	/**
 	 * Delete reset arcs
+	 * 
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private Map<PetrinetNode, Set<PetrinetNode>> deleteResetArcs(PetrinetGraph petrinetGraph) {
 
-		Map<PetrinetNode, Set<PetrinetNode>> deletedEdges = new HashMap<PetrinetNode,
-				Set<PetrinetNode>>();
+		Map<PetrinetNode, Set<PetrinetNode>> deletedEdges = new HashMap<PetrinetNode, Set<PetrinetNode>>();
 		for (Place place : petrinetGraph.getPlaces()) {
-			Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> outEdges 
-			= petrinetGraph.getOutEdges(place);
-			for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : outEdges) {
+			Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> outEdges = petrinetGraph
+					.getOutEdges(place);
+			for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : outEdges) {
 				if (edge instanceof ResetArc) {
 					petrinetGraph.removeEdge(edge);
 					Set<PetrinetNode> targetNodes;
-					if(deletedEdges.get(edge) == null) {
+					if (deletedEdges.get(edge) == null) {
 						targetNodes = new HashSet<PetrinetNode>();
 						deletedEdges.put(place, targetNodes);
 					} else {
@@ -335,27 +346,27 @@ public class PetriNet2BPMNConverter {
 				}
 			}
 		}
-		
+
 		return deletedEdges;
 	}
-	
+
 	/**
 	 * Restore reset arcs
+	 * 
 	 * @param petrinetGraph
 	 * @return
 	 */
-	private void restoreResetArcs(Map<PetrinetNode, Set<PetrinetNode>> resetArcs, 
-			PetrinetGraph petrinetGraph) {
-		
-		for(PetrinetNode place : resetArcs.keySet()) {
+	private void restoreResetArcs(Map<PetrinetNode, Set<PetrinetNode>> resetArcs, PetrinetGraph petrinetGraph) {
+
+		for (PetrinetNode place : resetArcs.keySet()) {
 			Set<PetrinetNode> transitions = resetArcs.get(place);
-			for(PetrinetNode transition : transitions) {
+			for (PetrinetNode transition : transitions) {
 				if (petrinetGraph instanceof ResetInhibitorNet) {
-					((ResetInhibitorNet)petrinetGraph).addResetArc((Place)place, (Transition)transition);
+					((ResetInhibitorNet) petrinetGraph).addResetArc((Place) place, (Transition) transition);
 				}
 				if (petrinetGraph instanceof ResetNet) {
 					System.out.println("Reset arc is added");
-					((ResetNet)petrinetGraph).addResetArc((Place)place, (Transition)transition);
+					((ResetNet) petrinetGraph).addResetArc((Place) place, (Transition) transition);
 				}
 			}
 		}
@@ -363,29 +374,31 @@ public class PetriNet2BPMNConverter {
 
 	/**
 	 * Convert Petri net to BPMN diagram
+	 * 
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @return
 	 */
 	private Map<String, Activity> convert(PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram) {
-		
+
 		// Map between Petri net nodes identifiers and BPMN diagram elements
 		Map<String, Activity> conversionMap = new HashMap<String, Activity>();
-		
+
 		// Places which have been converted
 		Set<Place> convertedPlaces = new HashSet<Place>();
-		
+
 		// Convert Petri net transitions to BPMN activities
 		convertTransitionsToActivities(petrinetGraph, bpmnDiagram, conversionMap);
-		
+
 		// Convert Petri net places to BPMN routing elements
 		convertPlacesToRoutingElements(petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
-		
-		return conversionMap; 
+
+		return conversionMap;
 	}
-	
+
 	/**
 	 * Convert Petri net transitions to BPMN activities
+	 * 
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @param conversionMap
@@ -394,18 +407,17 @@ public class PetriNet2BPMNConverter {
 			Map<String, Activity> conversionMap) {
 		for (Transition transition : petrinetGraph.getTransitions()) {
 			String label = EMPTY;
-			if (!transition.isInvisible() && transition.getLabel() != null 
-					&& !transition.getLabel().isEmpty()) {
+			if (!transition.isInvisible() && transition.getLabel() != null && !transition.getLabel().isEmpty()) {
 				label = transition.getLabel();
 			}
-			Activity activity = bpmnDiagram.addActivity(label, 
-					false, false, false, false, false);
+			Activity activity = bpmnDiagram.addActivity(label, false, false, false, false, false);
 			conversionMap.put(transition.getId().toString(), activity);
 		}
 	}
-	
+
 	/**
 	 * Convert Petri net places to BPMN routing elements
+	 * 
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @param conversionMap
@@ -416,46 +428,44 @@ public class PetriNet2BPMNConverter {
 		for (Place place : petrinetGraph.getPlaces()) {
 			if (!convertedPlaces.contains(place)) {
 				if (place == initialPlace) {
-					convertInitialPlace(place, petrinetGraph, bpmnDiagram, conversionMap, 
-							convertedPlaces);
-				} else if(isFinalPlace(place, petrinetGraph)) {
-					convertFinalPlace(place, petrinetGraph, bpmnDiagram, conversionMap, 
-							convertedPlaces);
+					convertInitialPlace(place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
+				} else if (isFinalPlace(place, petrinetGraph)) {
+					convertFinalPlace(place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
 				} else {
-					convertPlace(place, petrinetGraph, bpmnDiagram, conversionMap, 
-							convertedPlaces);
+					convertPlace(place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
 				}
 			}
 		}
 	}
 
 	/**
-	 * Check whether the place is a final (does not have outgoing arcs) 
+	 * Check whether the place is a final (does not have outgoing arcs)
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private boolean isFinalPlace(Place place, PetrinetGraph petrinetGraph) {
-		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> e
-				: petrinetGraph.getOutEdges(place)) {
-			if(!(e instanceof ResetArc)) {
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> e : petrinetGraph.getOutEdges(place)) {
+			if (!(e instanceof ResetArc)) {
 				return false;
 			}
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Initial place conversion
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @param conversionMap
 	 * @param convertedPlaces
 	 */
-	private void convertInitialPlace(Place place, PetrinetGraph petrinetGraph, 
-			BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
-		
+	private void convertInitialPlace(Place place, PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
+			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
+
 		// Collect equivalent places (places with the same set of out transitions)
 		Set<Place> equivalentPlaces = collectEquivalentPlaces(place, petrinetGraph);
 		for (Place equivalentPlace : equivalentPlaces) {
@@ -469,15 +479,14 @@ public class PetriNet2BPMNConverter {
 				return;
 			}
 		}
-		Event startEvent = 
-				bpmnDiagram.addEvent("START EVENT", EventType.START, null, EventUse.CATCH, true, null);
-		connectToOutTransitions(startEvent, place, petrinetGraph,bpmnDiagram, conversionMap,
-				convertedPlaces);
+		Event startEvent = bpmnDiagram.addEvent("START EVENT", EventType.START, null, EventUse.CATCH, true, null);
+		connectToOutTransitions(startEvent, place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
 		convertedPlaces.add(place);
 	}
-	
+
 	/**
-	 * Final place conversion 
+	 * Final place conversion
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
@@ -487,30 +496,49 @@ public class PetriNet2BPMNConverter {
 	private void convertFinalPlace(Place place, PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
 			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
 
+		Event endEvent = retrieveEndEvent(bpmnDiagram);
 		// Create final event
-		Event endEvent = bpmnDiagram.addEvent("END EVENT", EventType.END, null, EventUse.THROW, true, null);
+		if (endEvent == null) {
+			endEvent = bpmnDiagram.addEvent("END EVENT", EventType.END, null, EventUse.THROW, true, null);
+		}
 		Set<Transition> inTransitions = collectInTransitions(place, petrinetGraph);
-		
+
 		// If number of in transition is greater than 1, extra XOR-join should be created
 		if (inTransitions.size() > 1) {
 			Gateway xorJoin = bpmnDiagram.addGateway(EXCLUSIVE_GATEWAY, GatewayType.DATABASED);
 			for (Transition inTransition : inTransitions) {
-				connectToInTransition(inTransition, petrinetGraph, bpmnDiagram,
-						conversionMap, xorJoin);
+				connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, xorJoin);
 			}
 			bpmnDiagram.addFlow(xorJoin, endEvent, null);
-			
-		// If number of in transition equals 1
+
+			// If number of in transition equals 1
 		} else if (inTransitions.size() == 1) {
 			Transition inTransition = inTransitions.iterator().next();
-			connectToInTransition(inTransition, petrinetGraph, bpmnDiagram,
-					conversionMap, endEvent);
+			connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, endEvent);
 		}
 		convertedPlaces.add(place);
 	}
-	
+
+	/**
+	 * Retrieve end event for the BPMN Diagram
+	 * 
+	 * @param diagram
+	 * @return
+	 */
+	private Event retrieveEndEvent(BPMNDiagram diagram) {
+		Event endEvent = null;
+		for (Event event : diagram.getEvents()) {
+			if (event.getEventType().equals(EventType.END)) {
+				endEvent = event;
+			}
+		}
+
+		return endEvent;
+	}
+
 	/**
 	 * Connect current place to in transition
+	 * 
 	 * @param transition
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
@@ -518,12 +546,11 @@ public class PetriNet2BPMNConverter {
 	 * @param splitNode
 	 * @result splitnode or node before splitnode if split node is null
 	 */
-	private BPMNNode connectToInTransition(Transition inTransition, 
-			PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
-			Map<String, Activity> conversionMap, BPMNNode splitNode) {
+	private BPMNNode connectToInTransition(Transition inTransition, PetrinetGraph petrinetGraph,
+			BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap, BPMNNode splitNode) {
 
 		Activity activity = conversionMap.get(inTransition.getId().toString());
-		
+
 		// If in transition has more than one outgoing places and-split should be used
 		if (petrinetGraph.getOutEdges(inTransition).size() > 1) {
 			Gateway andSplit = retrieveActivityANDSplitSucessor(activity, bpmnDiagram);
@@ -531,16 +558,16 @@ public class PetriNet2BPMNConverter {
 				andSplit = bpmnDiagram.addGateway(PARALLEL_GATEWAY, GatewayType.PARALLEL);
 				bpmnDiagram.addFlow(activity, andSplit, null);
 			}
-			if(splitNode != null) {
+			if (splitNode != null) {
 				bpmnDiagram.addFlow(andSplit, splitNode, null);
 				return splitNode;
 			} else {
 				return andSplit;
 			}
-		
-		// If in transition has one outgoing place
+
+			// If in transition has one outgoing place
 		} else if (petrinetGraph.getOutEdges(inTransition).size() == 1) {
-			if(splitNode != null) {
+			if (splitNode != null) {
 				bpmnDiagram.addFlow(activity, splitNode, null);
 				return splitNode;
 			} else {
@@ -549,30 +576,31 @@ public class PetriNet2BPMNConverter {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Convert place predecessors
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @param conversionMap
 	 * @param convertedPlaces
-	 * @return last node of the result subgraph to which other nodes might be connected
+	 * @return last node of the result subgraph to which other nodes might be
+	 *         connected
 	 */
-	private BPMNNode convertPlacePredecessors(Place place, PetrinetGraph petrinetGraph, 
-			BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap, 
-			Set<Place> convertedPlaces) {
-		
+	private BPMNNode convertPlacePredecessors(Place place, PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
+			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
+
 		BPMNNode lastNode = null, andJoin = null, xorJoin = null;
 		boolean hasEquivalentPlaces = false;
-		
+
 		Set<Place> equivalentPlaces = collectEquivalentPlaces(place, petrinetGraph);
-		hasEquivalentPlaces = (equivalentPlaces.size() > 0)? true : false;
-		
+		hasEquivalentPlaces = (equivalentPlaces.size() > 0) ? true : false;
+
 		Set<Place> allPlaces = new HashSet<Place>();
 		allPlaces.addAll(equivalentPlaces);
 		allPlaces.add(place);
-		
+
 		for (Place somePlace : allPlaces) {
 			if (somePlace == initialPlace) {
 				// If the equivalent place is initial it should not be considered at all
@@ -581,7 +609,7 @@ public class PetriNet2BPMNConverter {
 			}
 			// If exists equivalent place, AND-join should be created
 			if (hasEquivalentPlaces) {
-				if(andJoin == null) {
+				if (andJoin == null) {
 					andJoin = bpmnDiagram.addGateway(PARALLEL_GATEWAY, GatewayType.PARALLEL);
 				}
 				if (!place.equals(somePlace)) {
@@ -593,13 +621,11 @@ public class PetriNet2BPMNConverter {
 			if (inTransitions.size() > 1) {
 				xorJoin = bpmnDiagram.addGateway(EXCLUSIVE_GATEWAY, GatewayType.DATABASED);
 				for (Transition inTransition : inTransitions) {
-					lastNode = connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, 
-							conversionMap, xorJoin);
+					lastNode = connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, xorJoin);
 				}
 			} else if (inTransitions.size() == 1) {
 				Transition inTransition = inTransitions.iterator().next();
-				lastNode = connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, 
-						conversionMap, null);
+				lastNode = connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, null);
 			}
 			if (hasEquivalentPlaces) {
 				bpmnDiagram.addFlow(lastNode, andJoin, null);
@@ -610,6 +636,7 @@ public class PetriNet2BPMNConverter {
 
 	/**
 	 * Place conversion
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
@@ -618,18 +645,18 @@ public class PetriNet2BPMNConverter {
 	 */
 	private void convertPlace(Place place, PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
 			Map<String, Activity> conversionMap, Set<Place> convertedPlaces) {
-		
-		BPMNNode startNode = convertPlacePredecessors(place, petrinetGraph, bpmnDiagram,
-				conversionMap, convertedPlaces);
-		connectToOutTransitions(startNode, place, petrinetGraph, bpmnDiagram, conversionMap,
-				convertedPlaces);
+
+		BPMNNode startNode = convertPlacePredecessors(place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
+		connectToOutTransitions(startNode, place, petrinetGraph, bpmnDiagram, conversionMap, convertedPlaces);
 		convertedPlaces.add(place);
 	}
 
 	/**
 	 * Connect current place to out transitions
-	 * @param startNode - node to which new elements should be connected by incoming
-	 * control flow
+	 * 
+	 * @param startNode
+	 *            - node to which new elements should be connected by incoming
+	 *            control flow
 	 * @param place
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
@@ -641,7 +668,7 @@ public class PetriNet2BPMNConverter {
 
 		// Collect outTransitions
 		Set<Transition> outTransitions = collectOutTransitions(place, petrinetGraph);
-		
+
 		// If amount of out transitions is greater than 1 create XOR-split
 		// and appropriate sequence flow
 		Gateway xorSplit = null;
@@ -660,84 +687,89 @@ public class PetriNet2BPMNConverter {
 			}
 		}
 	}
-	
+
 	/**
-	 * Retrieve starting element of the part of BPMN diagram corresponding to the transition
-	 * in the Petri net 
+	 * Retrieve starting element of the part of BPMN diagram corresponding to
+	 * the transition in the Petri net
+	 * 
 	 * @param transition
-	 * @param place - current place (note that the algorithm sequentially considers places)
+	 * @param place
+	 *            - current place (note that the algorithm sequentially
+	 *            considers places)
 	 * @param petrinetGraph
 	 * @param bpmnDiagram
 	 * @param conversionMap
-	 * @return AND-join gateway if transition has more than one in places, corresponding activity otherwise
+	 * @return AND-join gateway if transition has more than one in places,
+	 *         corresponding activity otherwise
 	 */
-//	private BPMNNode retrieveStartBPMNElementForTransition(Transition transition, Place place,
-//			PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap) {
-//
-//		// Collect equivalent places (places with the same set of out transitions)
-//		Set<Place> equivalentPlaces = collectEquivalentPlaces(place, petrinetGraph);
-//
-//		// Retrieve corresponding activity
-//		Activity activity = conversionMap.get(transition.getId().toString());
-//
-//		Set<Place> inPlaces = collectInPlaces(transition, petrinetGraph);
-//		// If set of in places contains another place which is not equivalent to this one,
-//		// then create AND-join and appropriate sequence flow (if it has not been created yet)
-//		Gateway andJoin = null;
-//		for (Place inPlace : inPlaces) {
-//			System.out.println("In place " + inPlace.getLabel());
-//			if (!inPlace.equals(place) && !equivalentPlaces.contains(inPlace)) {
-//				System.out.print("Retrieving and-join");
-//				andJoin = retrieveActivityANDJoinPredecessor(activity, bpmnDiagram);
-//				if (andJoin == null) {
-//					andJoin = bpmnDiagram.addGateway(PARALLEL_GATEWAY, GatewayType.PARALLEL);
-//					bpmnDiagram.addFlow(andJoin, activity, null);
-//				}
-//			}
-//		}
-//		return (andJoin != null) ? andJoin : activity;
-//	}
+	//	private BPMNNode retrieveStartBPMNElementForTransition(Transition transition, Place place,
+	//			PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap) {
+	//
+	//		// Collect equivalent places (places with the same set of out transitions)
+	//		Set<Place> equivalentPlaces = collectEquivalentPlaces(place, petrinetGraph);
+	//
+	//		// Retrieve corresponding activity
+	//		Activity activity = conversionMap.get(transition.getId().toString());
+	//
+	//		Set<Place> inPlaces = collectInPlaces(transition, petrinetGraph);
+	//		// If set of in places contains another place which is not equivalent to this one,
+	//		// then create AND-join and appropriate sequence flow (if it has not been created yet)
+	//		Gateway andJoin = null;
+	//		for (Place inPlace : inPlaces) {
+	//			System.out.println("In place " + inPlace.getLabel());
+	//			if (!inPlace.equals(place) && !equivalentPlaces.contains(inPlace)) {
+	//				System.out.print("Retrieving and-join");
+	//				andJoin = retrieveActivityANDJoinPredecessor(activity, bpmnDiagram);
+	//				if (andJoin == null) {
+	//					andJoin = bpmnDiagram.addGateway(PARALLEL_GATEWAY, GatewayType.PARALLEL);
+	//					bpmnDiagram.addFlow(andJoin, activity, null);
+	//				}
+	//			}
+	//		}
+	//		return (andJoin != null) ? andJoin : activity;
+	//	}
 
 	/**
 	 * Retrieve activity AND-join predecessor
+	 * 
 	 * @param activity
 	 * @param bpmnDiagram
 	 * @return
 	 */
-//	private Gateway retrieveActivityANDJoinPredecessor(Activity activity, BPMNDiagram bpmnDiagram) {
-//		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges 
-//			=  bpmnDiagram.getInEdges(activity);
-//		for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inEdge : inEdges) {
-//			BPMNNode sourceNode = inEdge.getSource();
-//			if ((sourceNode instanceof Gateway)
-//				&& ((Gateway)sourceNode).getGatewayType().equals(GatewayType.PARALLEL)) {
-//				return (Gateway)sourceNode;
-//			}
-//		}
-//		return null;
-//	}
+	//	private Gateway retrieveActivityANDJoinPredecessor(Activity activity, BPMNDiagram bpmnDiagram) {
+	//		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges 
+	//			=  bpmnDiagram.getInEdges(activity);
+	//		for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inEdge : inEdges) {
+	//			BPMNNode sourceNode = inEdge.getSource();
+	//			if ((sourceNode instanceof Gateway)
+	//				&& ((Gateway)sourceNode).getGatewayType().equals(GatewayType.PARALLEL)) {
+	//				return (Gateway)sourceNode;
+	//			}
+	//		}
+	//		return null;
+	//	}
 
 	/**
 	 * Retrieve activity AND-split ancestor
+	 * 
 	 * @param activity
 	 * @param bpmnDiagram
 	 * @return
 	 */
 	private Gateway retrieveActivityANDSplitSucessor(Activity activity, BPMNDiagram bpmnDiagram) {
-		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges 
-			=  bpmnDiagram.getOutEdges(activity);
-		for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outEdge : outEdges) {
+		Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges = bpmnDiagram.getOutEdges(activity);
+		for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outEdge : outEdges) {
 			BPMNNode targetNode = outEdge.getTarget();
-			if ((targetNode instanceof Gateway)
-				&& ((Gateway)targetNode).getGatewayType().equals(GatewayType.PARALLEL)) {
-				return (Gateway)targetNode;
+			if ((targetNode instanceof Gateway) && ((Gateway) targetNode).getGatewayType().equals(GatewayType.PARALLEL)) {
+				return (Gateway) targetNode;
 			}
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Collect equivalent places (places with the same set of out transitions)
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @return
@@ -748,8 +780,7 @@ public class PetriNet2BPMNConverter {
 		Set<Transition> outTransitions = collectOutTransitions(place, petrinetGraph);
 		for (Place anyPlace : petrinetGraph.getPlaces()) {
 			if (!place.equals(anyPlace)) {
-				Set<Transition> outTransitionsForAnyPlace
-					= collectOutTransitions(anyPlace, petrinetGraph);
+				Set<Transition> outTransitionsForAnyPlace = collectOutTransitions(anyPlace, petrinetGraph);
 				if (outTransitionsForAnyPlace.containsAll(outTransitions)) {
 					// We use containsAll() method due to free-choice Petri net
 					equivalentPlaces.add(anyPlace);
@@ -758,90 +789,199 @@ public class PetriNet2BPMNConverter {
 		}
 		return equivalentPlaces;
 	}
-	
+
 	/**
-	 * Collect in transitions for a place in the Petri net 
+	 * Collect in transitions for a place in the Petri net
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private Set<Transition> collectInTransitions(Place place, PetrinetGraph petrinetGraph) {
 		Set<Transition> inTransitions = new HashSet<Transition>();
-		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges 
-			= petrinetGraph.getInEdges(place);
-		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges){
-			inTransitions.add((Transition)inEdge.getSource());
+		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges = petrinetGraph
+				.getInEdges(place);
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges) {
+			inTransitions.add((Transition) inEdge.getSource());
 		}
 		return inTransitions;
 	}
 
 	/**
-	 * Collect out transitions for a place in the Petri net 
+	 * Collect out transitions for a place in the Petri net
+	 * 
 	 * @param place
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private Set<Transition> collectOutTransitions(Place place, PetrinetGraph petrinetGraph) {
 		Set<Transition> outTransitions = new HashSet<Transition>();
-		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> outEdges 
-			= petrinetGraph.getOutEdges(place);
-		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> outEdge : outEdges){
-			if(!(outEdge instanceof ResetArc)) {
-				outTransitions.add((Transition)outEdge.getTarget());
+		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> outEdges = petrinetGraph
+				.getOutEdges(place);
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> outEdge : outEdges) {
+			if (!(outEdge instanceof ResetArc)) {
+				outTransitions.add((Transition) outEdge.getTarget());
 			}
 		}
 		return outTransitions;
 	}
-	
+
 	/**
 	 * Collect in places for a transition in the Petri net
+	 * 
 	 * @param transition
 	 * @param petrinetGraph
 	 * @return
 	 */
 	private Set<Place> collectInPlaces(Transition transition, PetrinetGraph petrinetGraph) {
 		Set<Place> inPlaces = new HashSet<Place>();
-		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges 
-			= petrinetGraph.getInEdges(transition);
-		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges){
-			inPlaces.add((Place)inEdge.getSource());
+		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> inEdges = petrinetGraph
+				.getInEdges(transition);
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> inEdge : inEdges) {
+			inPlaces.add((Place) inEdge.getSource());
 		}
 		return inPlaces;
 	}
-	
+
+	/**
+	 * Simplify BPMN diagram
+	 * 
+	 * @param conversionMap
+	 * @param diagram
+	 */
+	private void simplifyBPMNDiagram(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
+		removeSilentActivities(conversionMap, diagram);
+		mergeActivitiesAndGateways(conversionMap, diagram);
+		reduceGateways(conversionMap, diagram);
+	}
+
+	/**
+	 * Reduce gateways
+	 * 
+	 * @param conversionMap
+	 * @param diagram
+	 */
+	private void reduceGateways(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
+		boolean diagramChanged = false;
+		do {
+			diagramChanged = false;
+			Collection<Gateway> toReduce = new HashSet<Gateway>();
+			for (Gateway gateway : diagram.getGateways()) {
+				for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(gateway)) {
+					if (flow.getTarget() instanceof Gateway) {
+						Gateway followingGateway = (Gateway) flow.getTarget();
+						if ((diagram.getOutEdges(gateway).size() == 1)
+								|| (diagram.getInEdges(followingGateway).size() == 1)) {
+							if (gateway.getGatewayType().equals(followingGateway.getGatewayType())) {
+								Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
+								for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
+										.getOutEdges(followingGateway)) {
+									BPMNNode followingNode = outFlow.getTarget();
+									followingNodes.add(followingNode);
+								}
+								toReduce.add(followingGateway);
+								for (BPMNNode followingNode : followingNodes) {
+									diagram.addFlow(gateway, followingNode, "");
+								}
+								diagramChanged = true;
+							}
+
+						}
+					}
+				}
+			}
+			for (Gateway gateway : toReduce) {
+				diagram.removeGateway(gateway);
+			}
+		} while (diagramChanged);
+	}
+
+	/**
+	 * Reduce gateways
+	 * 
+	 * @param conversionMap
+	 * @param diagram
+	 */
+	private void mergeActivitiesAndGateways(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
+		for (Activity activity : diagram.getActivities()) {
+
+			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(activity)) {
+				if (flow.getTarget() instanceof Gateway) {
+					Gateway followingGateway = (Gateway) flow.getTarget();
+					if (GatewayType.PARALLEL.equals(followingGateway.getGatewayType())) {
+						if (diagram.getInEdges(followingGateway).size() == 1) {
+							Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
+							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
+									.getOutEdges(followingGateway)) {
+								BPMNNode followingNode = outFlow.getTarget();
+								followingNodes.add(followingNode);
+							}
+							diagram.removeGateway(followingGateway);
+							for (BPMNNode followingNode : followingNodes) {
+								diagram.addFlow(activity, followingNode, "");
+
+							}
+						}
+					}
+				}
+			}
+
+			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getInEdges(activity)) {
+				if (flow.getSource() instanceof Gateway) {
+					Gateway precedingGateway = (Gateway) flow.getSource();
+					if (GatewayType.DATABASED.equals(precedingGateway.getGatewayType())) {
+						if (diagram.getOutEdges(precedingGateway).size() == 1) {
+							Collection<BPMNNode> precedingNodes = new HashSet<BPMNNode>();
+							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inFlow : diagram
+									.getInEdges(precedingGateway)) {
+								BPMNNode precedingNode = inFlow.getSource();
+								precedingNodes.add(precedingNode);
+							}
+							diagram.removeGateway(precedingGateway);
+							for (BPMNNode precedingNode : precedingNodes) {
+								diagram.addFlow(precedingNode, activity, "");
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Remove silent activities
+	 * 
 	 * @param conversionMap
 	 * @param diagram
 	 */
 	private void removeSilentActivities(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
 		Collection<Activity> allActivities = new HashSet<Activity>();
 		allActivities.addAll(diagram.getActivities());
-		for(Activity activity : allActivities) {
-			if(EMPTY.equals(activity.getLabel())) {
-				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges 
-					= diagram.getInEdges(activity);
-				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges 
-				= diagram.getOutEdges(activity);
+		for (Activity activity : allActivities) {
+			if (EMPTY.equals(activity.getLabel())) {
+				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges = diagram.getInEdges(activity);
+				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges = diagram.getOutEdges(activity);
 				BPMNNode source = inEdges.iterator().next().getSource();
 				BPMNNode target = outEdges.iterator().next().getTarget();
 				diagram.addFlow(source, target, "");
 				diagram.removeActivity(activity);
-				Set<String> idToRemove = new HashSet<String>(); 
-				for(String id : conversionMap.keySet()) {
-					if(activity.getId().equals(conversionMap.get(id))) {
+				Set<String> idToRemove = new HashSet<String>();
+				for (String id : conversionMap.keySet()) {
+					if (activity.getId().equals(conversionMap.get(id))) {
 						idToRemove.add(id);
 					}
 				}
-				for(String id : idToRemove) {
+				for (String id : idToRemove) {
 					conversionMap.remove(id);
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Clone Petri net
+	 * 
 	 * @param dataPetriNet
 	 * @return
 	 */
@@ -850,26 +990,26 @@ public class PetriNet2BPMNConverter {
 		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 		Map<Place, Place> placesMap = new HashMap<Place, Place>();
 		Marking newMarking = new Marking();
-		
-		for(Transition transition : petriNet.getTransitions()) {
+
+		for (Transition transition : petriNet.getTransitions()) {
 			transitionsMap.put(transition, clonePetriNet.addTransition(transition.getLabel()));
 		}
-		for(Place place : petriNet.getPlaces()) {
+		for (Place place : petriNet.getPlaces()) {
 			placesMap.put(place, clonePetriNet.addPlace(place.getLabel()));
 		}
-		for(PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : 
-			petriNet.getEdges()) {
-			if(edge instanceof InhibitorArc) {
-				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {					
-					clonePetriNet.addInhibitorArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> edge : petriNet.getEdges()) {
+			if (edge instanceof InhibitorArc) {
+				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {
+					clonePetriNet
+							.addInhibitorArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
 				}
 			}
-			if(edge instanceof ResetArc) {
+			if (edge instanceof ResetArc) {
 				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {
 					clonePetriNet.addResetArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
 				}
 			}
-			if(edge instanceof Arc) {
+			if (edge instanceof Arc) {
 				if ((edge.getSource() instanceof Place) && (edge.getTarget() instanceof Transition)) {
 					clonePetriNet.addArc(placesMap.get(edge.getSource()), transitionsMap.get(edge.getTarget()));
 				}
@@ -878,14 +1018,14 @@ public class PetriNet2BPMNConverter {
 				}
 			}
 		}
-		
+
 		// Construct marking for the clone Petri net
-		if(marking != null) {
-			for(Place markedPlace : marking.toList()) {
+		if (marking != null) {
+			for (Place markedPlace : marking.toList()) {
 				newMarking.add(placesMap.get(markedPlace));
 			}
 		}
-		
-		return new Object[]{clonePetriNet, transitionsMap, newMarking};
+
+		return new Object[] { clonePetriNet, transitionsMap, newMarking };
 	}
 }
