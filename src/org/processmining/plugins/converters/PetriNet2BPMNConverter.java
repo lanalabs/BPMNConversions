@@ -19,6 +19,7 @@ import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.connections.petrinets.structural.FreeChoiceInfoConnection;
+import org.processmining.models.graphbased.directed.DirectedGraphEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
@@ -43,11 +44,13 @@ import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.ResetInhibitorNetImpl;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.graphalgorithms.DFSAlgorithms;
 
 /**
  * Conversion of a Petri net to BPMN model
  * 
- * @author Anna Kalenkova Jul 18, 2013
+ * @author Anna Kalenkova 
+ * Jul 18, 2013
  */
 @Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, returnLabels = {
 		"BPMN Diagram, ", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, userAccessible = true, help = "Converts Petri net to BPMN diagram")
@@ -143,21 +146,38 @@ public class PetriNet2BPMNConverter {
 		}
 	}
 
+	
 	/**
 	 * Handle transitions without incoming sequence flows
 	 * 
 	 * @param petriNet
 	 */
+	@SuppressWarnings("rawtypes")
 	private void handleUnconnectedTransitions(PetrinetGraph petriNet) {
 		for (Transition transition : petriNet.getTransitions()) {
-			if ((petriNet.getOutEdges(transition) == null) || (petriNet.getOutEdges(transition).size() == 0)) {
-				Place newPlace = petriNet.addPlace("");
-				petriNet.addArc(transition, newPlace);
-			}
 			if ((petriNet.getInEdges(transition) == null) || (petriNet.getInEdges(transition).size() == 0)) {
 				Place newPlace = petriNet.addPlace("");
 				petriNet.addArc(initialTransition, newPlace);
 				petriNet.addArc(newPlace, transition);
+				petriNet.addArc(transition, newPlace);
+			}
+		}
+		DFSAlgorithms dfs = new DFSAlgorithms(petriNet, initialPlace);
+		Set<DirectedGraphEdge> backwardEdges = dfs.findBackwardEdges();
+		for (Transition transition : petriNet.getTransitions()) {
+			
+			// Calculate edges from out places
+			Set<DirectedGraphEdge> outPlacesEdges = new HashSet<DirectedGraphEdge>();
+			for(DirectedGraphEdge edge : petriNet.getOutEdges(transition)) {
+				Place place = (Place)edge.getTarget();
+				outPlacesEdges.addAll(petriNet.getOutEdges(place));
+			}
+			
+			if ((petriNet.getOutEdges(transition) == null) 
+					|| (petriNet.getOutEdges(transition).size() == 0)
+					|| (backwardEdges.containsAll(petriNet.getOutEdges(transition)))
+					|| (backwardEdges.containsAll(outPlacesEdges)))  {
+				Place newPlace = petriNet.addPlace("");
 				petriNet.addArc(transition, newPlace);
 			}
 		}
