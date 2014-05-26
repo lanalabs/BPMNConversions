@@ -19,7 +19,7 @@ import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.connections.petrinets.structural.FreeChoiceInfoConnection;
-import org.processmining.models.graphbased.directed.DirectedGraphEdge;
+import org.processmining.models.graphbased.directed.DirectedGraphNode;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
@@ -44,7 +44,7 @@ import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.ResetInhibitorNetImpl;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.graphalgorithms.DFSAlgorithms;
+import org.processmining.plugins.graphalgorithms.DFS;
 
 /**
  * Conversion of a Petri net to BPMN model
@@ -58,7 +58,6 @@ public class PetriNet2BPMNConverter {
 
 	private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
 	private static final String PARALLEL_GATEWAY = "Parallel gateway";
-	private static final String EMPTY = "Empty";
 
 	private Place initialPlace;
 	private Transition initialTransition;
@@ -100,8 +99,8 @@ public class PetriNet2BPMNConverter {
 		// Convert to a Petri net with one source place if needed
 		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneMarking);
 
-		// Handle transitions without incoming and outgoing sequence flows
-		handleUnconnectedTransitions(clonePetrinet);
+		// Handle transitions without incoming sequence flows
+		handleTransitionsWithoutIncomingFlows(clonePetrinet);
 
 		// Remove places without incoming sequence flows
 		removeDeadPlaces(clonePetrinet);
@@ -110,7 +109,10 @@ public class PetriNet2BPMNConverter {
 		Map<String, Activity> conversionMap = convert(clonePetrinet, bpmnDiagram);
 
 		// Simplify BPMN diagram
-		simplifyBPMNDiagram(conversionMap, bpmnDiagram);
+		BPMNUtils.simplifyBPMNDiagram(conversionMap, bpmnDiagram);
+		
+		// Handle activities without outgoing sequence flows
+		handleActivitiesWithoutOutgoingFlows(bpmnDiagram);
 
 		//Add end event
 		//addEndEvent(bpmnDiagram);
@@ -153,7 +155,9 @@ public class PetriNet2BPMNConverter {
 	 * @param petriNet
 	 */
 	@SuppressWarnings("rawtypes")
-	private void handleUnconnectedTransitions(PetrinetGraph petriNet) {
+	private void handleTransitionsWithoutIncomingFlows(PetrinetGraph petriNet) {
+		
+		// Handle transitions without incoming edges
 		for (Transition transition : petriNet.getTransitions()) {
 			if ((petriNet.getInEdges(transition) == null) || (petriNet.getInEdges(transition).size() == 0)) {
 				Place newPlace = petriNet.addPlace("");
@@ -162,26 +166,65 @@ public class PetriNet2BPMNConverter {
 				petriNet.addArc(transition, newPlace);
 			}
 		}
-		DFSAlgorithms dfs = new DFSAlgorithms(petriNet, initialPlace);
-		Set<DirectedGraphEdge> backwardEdges = dfs.findBackwardEdges();
-		for (Transition transition : petriNet.getTransitions()) {
-			
-			// Calculate edges from out places
-			Set<DirectedGraphEdge> outPlacesEdges = new HashSet<DirectedGraphEdge>();
-			for(DirectedGraphEdge edge : petriNet.getOutEdges(transition)) {
-				Place place = (Place)edge.getTarget();
-				outPlacesEdges.addAll(petriNet.getOutEdges(place));
-			}
-			
-			if ((petriNet.getOutEdges(transition) == null) 
-					|| (petriNet.getOutEdges(transition).size() == 0)
-					|| (backwardEdges.containsAll(petriNet.getOutEdges(transition)))
-					|| (backwardEdges.containsAll(outPlacesEdges)))  {
-				Place newPlace = petriNet.addPlace("");
-				petriNet.addArc(transition, newPlace);
+	}
+	
+	private void handleActivitiesWithoutOutgoingFlows(BPMNDiagram bpmnDiagram) {
+		// Handle activities without paths to end event		
+		Event startEvent = retrieveStartEvent(bpmnDiagram);
+		Event endEvent = retrieveEndEvent(bpmnDiagram);
+		DFS dfs = new DFS(bpmnDiagram, startEvent);
+
+		Set<Activity> acivitiesWithoutPathToEndEvent = findActivitiesWithoutPathToEndEvent(bpmnDiagram, dfs);
+		Set<Activity> currentActivities = new HashSet<Activity>();
+		currentActivities.addAll(acivitiesWithoutPathToEndEvent);
+
+		for (Activity activity1 : acivitiesWithoutPathToEndEvent) {
+			for (Activity activity2 : acivitiesWithoutPathToEndEvent) {
+				if (dfs.findDescendants(activity1).contains(activity2) && !activity1.equals(activity2)) {
+					if (currentActivities.contains(activity2)) {
+						currentActivities.remove(activity2);
+					}
+				}
 			}
 		}
+
+		for (Activity activity : currentActivities) {
+			bpmnDiagram.addFlow(activity, endEvent, "");
+		}
 	}
+	
+	/**
+	 * Find activities without a path to end event
+	 * 
+	 * @param bpmnDiagram
+	 * @return
+	 */
+	private Set<Activity> findActivitiesWithoutPathToEndEvent(BPMNDiagram bpmnDiagram, DFS dfs) {
+			
+			Set<Activity> resultSet = new HashSet<Activity>();
+			Event endEvent = retrieveEndEvent(bpmnDiagram);
+			// Find activities without paths to end event
+			for (Activity activity : bpmnDiagram.getActivities()) {
+				Set<DirectedGraphNode> descendants = dfs.findDescendants(activity);
+				System.out.println("+++++++++++++++++");
+				System.out.println(activity);
+				System.out.println("-----------------");
+				System.out.println(descendants);
+				
+				
+				boolean hasPathToEndEvent = false; 
+				for(DirectedGraphNode descendant : descendants) {
+					if (descendant.equals(endEvent)) {
+						hasPathToEndEvent = true;
+					}
+				}
+				if(!hasPathToEndEvent) {
+					resultSet.add(activity);
+				}
+			}
+			return resultSet;
+		}
+	
 
 	/**
 	 * Remove places without incoming sequence flows and corresponding output
@@ -426,7 +469,7 @@ public class PetriNet2BPMNConverter {
 	private void convertTransitionsToActivities(PetrinetGraph petrinetGraph, BPMNDiagram bpmnDiagram,
 			Map<String, Activity> conversionMap) {
 		for (Transition transition : petrinetGraph.getTransitions()) {
-			String label = EMPTY;
+			String label = BPMNUtils.EMPTY;
 			if (!transition.isInvisible() && transition.getLabel() != null && !transition.getLabel().isEmpty()) {
 				label = transition.getLabel();
 			}
@@ -523,18 +566,10 @@ public class PetriNet2BPMNConverter {
 		}
 		Set<Transition> inTransitions = collectInTransitions(place, petrinetGraph);
 
-		// If number of in transition is greater than 1, extra XOR-join should be created
-		if (inTransitions.size() > 1) {
-			Gateway xorJoin = bpmnDiagram.addGateway(EXCLUSIVE_GATEWAY, GatewayType.DATABASED);
-			for (Transition inTransition : inTransitions) {
-				connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, xorJoin);
-			}
-			bpmnDiagram.addFlow(xorJoin, endEvent, null);
+		for (Transition inTransition : inTransitions) {
 
-			// If number of in transition equals 1
-		} else if (inTransitions.size() == 1) {
-			Transition inTransition = inTransitions.iterator().next();
-			connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, endEvent);
+			Activity activity = conversionMap.get(inTransition.getId().toString());
+			bpmnDiagram.addFlow(activity, endEvent, null);
 		}
 		convertedPlaces.add(place);
 	}
@@ -554,6 +589,23 @@ public class PetriNet2BPMNConverter {
 		}
 
 		return endEvent;
+	}
+	
+	/**
+	 * Retrieve start event for the BPMN Diagram
+	 * 
+	 * @param diagram
+	 * @return
+	 */
+	private Event retrieveStartEvent(BPMNDiagram diagram) {
+		Event startEvent = null;
+		for (Event event : diagram.getEvents()) {
+			if (event.getEventType().equals(EventType.START)) {
+				startEvent = event;
+			}
+		}
+
+		return startEvent;
 	}
 
 	/**
@@ -862,142 +914,27 @@ public class PetriNet2BPMNConverter {
 		}
 		return inPlaces;
 	}
-
+	
 	/**
-	 * Simplify BPMN diagram
+	 * Collect out places for a transition in the Petri net
 	 * 
-	 * @param conversionMap
-	 * @param diagram
+	 * @param transition
+	 * @param petrinetGraph
+	 * @return
 	 */
-	private void simplifyBPMNDiagram(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
-		removeSilentActivities(conversionMap, diagram);
-		mergeActivitiesAndGateways(conversionMap, diagram);
-		reduceGateways(conversionMap, diagram);
-	}
-
-	/**
-	 * Reduce gateways
-	 * 
-	 * @param conversionMap
-	 * @param diagram
-	 */
-	private void reduceGateways(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
-		boolean diagramChanged = false;
-		do {
-			diagramChanged = false;
-			Collection<Gateway> toReduce = new HashSet<Gateway>();
-			for (Gateway gateway : diagram.getGateways()) {
-				for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(gateway)) {
-					if (flow.getTarget() instanceof Gateway) {
-						Gateway followingGateway = (Gateway) flow.getTarget();
-						if ((diagram.getOutEdges(gateway).size() == 1)
-								|| (diagram.getInEdges(followingGateway).size() == 1)) {
-							if (gateway.getGatewayType().equals(followingGateway.getGatewayType())) {
-								Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
-								for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
-										.getOutEdges(followingGateway)) {
-									BPMNNode followingNode = outFlow.getTarget();
-									followingNodes.add(followingNode);
-								}
-								toReduce.add(followingGateway);
-								for (BPMNNode followingNode : followingNodes) {
-									diagram.addFlow(gateway, followingNode, "");
-								}
-								diagramChanged = true;
-							}
-
-						}
-					}
-				}
-			}
-			for (Gateway gateway : toReduce) {
-				diagram.removeGateway(gateway);
-			}
-		} while (diagramChanged);
-	}
-
-	/**
-	 * Reduce gateways
-	 * 
-	 * @param conversionMap
-	 * @param diagram
-	 */
-	private void mergeActivitiesAndGateways(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
-		for (Activity activity : diagram.getActivities()) {
-
-			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(activity)) {
-				if (flow.getTarget() instanceof Gateway) {
-					Gateway followingGateway = (Gateway) flow.getTarget();
-					if (GatewayType.PARALLEL.equals(followingGateway.getGatewayType())) {
-						if (diagram.getInEdges(followingGateway).size() == 1) {
-							Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
-							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
-									.getOutEdges(followingGateway)) {
-								BPMNNode followingNode = outFlow.getTarget();
-								followingNodes.add(followingNode);
-							}
-							diagram.removeGateway(followingGateway);
-							for (BPMNNode followingNode : followingNodes) {
-								diagram.addFlow(activity, followingNode, "");
-
-							}
-						}
-					}
-				}
-			}
-
-			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getInEdges(activity)) {
-				if (flow.getSource() instanceof Gateway) {
-					Gateway precedingGateway = (Gateway) flow.getSource();
-					if (GatewayType.DATABASED.equals(precedingGateway.getGatewayType())) {
-						if (diagram.getOutEdges(precedingGateway).size() == 1) {
-							Collection<BPMNNode> precedingNodes = new HashSet<BPMNNode>();
-							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inFlow : diagram
-									.getInEdges(precedingGateway)) {
-								BPMNNode precedingNode = inFlow.getSource();
-								precedingNodes.add(precedingNode);
-							}
-							diagram.removeGateway(precedingGateway);
-							for (BPMNNode precedingNode : precedingNodes) {
-								diagram.addFlow(precedingNode, activity, "");
-
-							}
-						}
-					}
-				}
-			}
+	private Set<Place> collectOutPlaces(Transition transition, PetrinetGraph petrinetGraph) {
+		Set<Place> outPlaces = new HashSet<Place>();
+		Collection<PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode>> outEdges = petrinetGraph
+				.getOutEdges(transition);
+		for (PetrinetEdge<? extends PetrinetNode, ? extends PetrinetNode> outEdge : outEdges) {
+			outPlaces.add((Place) outEdge.getTarget());
 		}
+		return outPlaces;
 	}
 
-	/**
-	 * Remove silent activities
-	 * 
-	 * @param conversionMap
-	 * @param diagram
-	 */
-	private void removeSilentActivities(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
-		Collection<Activity> allActivities = new HashSet<Activity>();
-		allActivities.addAll(diagram.getActivities());
-		for (Activity activity : allActivities) {
-			if (EMPTY.equals(activity.getLabel())) {
-				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges = diagram.getInEdges(activity);
-				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges = diagram.getOutEdges(activity);
-				BPMNNode source = inEdges.iterator().next().getSource();
-				BPMNNode target = outEdges.iterator().next().getTarget();
-				diagram.addFlow(source, target, "");
-				diagram.removeActivity(activity);
-				Set<String> idToRemove = new HashSet<String>();
-				for (String id : conversionMap.keySet()) {
-					if (activity.getId().equals(conversionMap.get(id))) {
-						idToRemove.add(id);
-					}
-				}
-				for (String id : idToRemove) {
-					conversionMap.remove(id);
-				}
-			}
-		}
-	}
+
+
+	
 
 	/**
 	 * Clone Petri net

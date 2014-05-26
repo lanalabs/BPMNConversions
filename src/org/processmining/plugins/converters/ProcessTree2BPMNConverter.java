@@ -68,6 +68,9 @@ public class ProcessTree2BPMNConverter {
 		// Convert Process tree to a BPMN diagram
 		convert(tree, bpmnDiagram);
 		
+		//Simplify BPMN diagram
+		BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
+		
 		progress.setCaption("Getting BPMN Visualization");
 		
 		Map<NodeID, UUID> idMap = retrieveIdMap();
@@ -231,24 +234,28 @@ public class ProcessTree2BPMNConverter {
 		BPMNNode target = deleteOutgoingFlow(activity, bpmnDiagram);
 		bpmnDiagram.removeActivity(activity);
 		
-		// Add new task
-		Activity task = bpmnDiagram.addActivity(taskNode.getName(), false, false, false,
-				false, false);
 		
-		bpmnDiagram.addFlow(source, task, currentLabel);		                                                                                                                                            
-		bpmnDiagram.addFlow(task, target, "");	
-		
-		conversionMap.remove(activity);
-		conversionMap.put(task, taskNode);
-		if(taskNode instanceof Manual) {
-			Manual manualTask = (Manual)taskNode;
-			Collection<Originator> originators = manualTask.getOriginators();
-			if(originators.size() == 1) {
-				Originator originator = originators.iterator().next();
-				Swimlane lane = orgIdMap.get(originator.getID());
-				task.setParentSwimlane(lane);
+			// Add new task
+			String label = BPMNUtils.EMPTY;
+			if (taskNode.getName() != null && !taskNode.getName().isEmpty()) {
+				label = taskNode.getName();
 			}
-		}
+			Activity task = bpmnDiagram.addActivity(label, false, false, false, false, false);
+
+			bpmnDiagram.addFlow(source, task, currentLabel);
+			bpmnDiagram.addFlow(task, target, "");
+			conversionMap.remove(activity);
+			conversionMap.put(task, taskNode);
+			if (taskNode instanceof Manual) {
+				Manual manualTask = (Manual) taskNode;
+				Collection<Originator> originators = manualTask.getOriginators();
+				if (originators.size() == 1) {
+					Originator originator = originators.iterator().next();
+					Swimlane lane = orgIdMap.get(originator.getID());
+					task.setParentSwimlane(lane);
+				}
+			}
+		
 		expandNodes(tree, bpmnDiagram);
 	}
 	
