@@ -1,10 +1,14 @@
 package org.processmining.plugins.converters;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.processmining.models.flexiblemodel.Flex;
 import org.processmining.models.flexiblemodel.FlexNode;
 import org.processmining.models.flexiblemodel.SetFlex;
-
-import java.util.*;
 
 public class FlexFixer {
 
@@ -32,7 +36,10 @@ public class FlexFixer {
         else endNodes = findEndNodes();
 
         if (startNodes.size() > 1) addCommonStartNode(startNodes);
+        else commonStartNode = startNodes.iterator().next().first();
+
         if (endNodes.size() > 1) addCommonEndNode(endNodes);
+        else commonEndNode = endNodes.iterator().next().first();
     }
 
     private Collection<SetFlex> findStartNodes() {
