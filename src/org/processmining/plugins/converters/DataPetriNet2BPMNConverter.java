@@ -2,6 +2,7 @@ package org.processmining.plugins.converters;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -110,7 +111,7 @@ public class DataPetriNet2BPMNConverter {
 			BPMNDiagram bpmnDiagram) {
 		Collection<DataElement> dataElements = dataPetriNet.getVariables();
 		for(DataElement dataElement : dataElements) {
-			DataObject dataObject = bpmnDiagram.addDataObject(dataElement.getLabel());
+			DataObject dataObject = bpmnDiagram.addDataObject(dataElement.getVarName());
 			dataObjectsMap.put(dataElement.getId().toString(), dataObject);
 		}
 	}
@@ -178,39 +179,54 @@ public class DataPetriNet2BPMNConverter {
 	 * @param conversionMap
 	 * @param bpmnDiagram
 	 */
-	private void removeInvisibleTransitions(DataPetriNet dataPetriNet,
-			Map<Transition, Transition> transitionsMap, Map<String, Activity> conversionMap,
-			BPMNDiagram bpmnDiagram) {		
+	private void removeInvisibleTransitions(DataPetriNet dataPetriNet, Map<Transition, Transition> transitionsMap,
+			Map<String, Activity> conversionMap, BPMNDiagram bpmnDiagram) {
 		for (Transition transition : dataPetriNet.getTransitions()) {
 			if (transition instanceof PNWDTransition) {
 				PNWDTransition pnwdTransition = (PNWDTransition) transition;
-				if(pnwdTransition.isInvisible()) {
+				if (pnwdTransition.isInvisible()) {
 					Activity activity = conversionMap.get(transitionsMap.get(transition).getId().toString());
-					
+
 					// Retrieve incoming, outgoing flows and guard
 					String guard = null;
-					BPMNEdge<?,?> incomingFlow = null;
-					BPMNEdge<?,?> outgoingFlow = null;
-					for (BPMNEdge<?,?> edge : bpmnDiagram.getInEdges(activity)) {
+					Set<BPMNEdge<?, ?>> incomingFlows = new HashSet<BPMNEdge<?, ?>>();
+					Set<BPMNEdge<?, ?>> outgoingFlows = new HashSet<BPMNEdge<?, ?>>();
+					for (BPMNEdge<?, ?> edge : bpmnDiagram.getInEdges(activity)) {
 						if (edge instanceof Flow) {
-							guard =edge.getLabel();
-							incomingFlow =edge;
+							guard = edge.getLabel();
+							incomingFlows.add(edge);
 						}
 					}
-					for (BPMNEdge<?,?> edge : bpmnDiagram.getOutEdges(activity)) {
+					for (BPMNEdge<?, ?> edge : bpmnDiagram.getOutEdges(activity)) {
 						if (edge instanceof Flow) {
-							outgoingFlow =edge;
+							outgoingFlows.add(edge);
+							;
 						}
 					}
-					
+
 					// Remove activity and add new sequence flow
-					BPMNNode source = incomingFlow.getSource();
-					BPMNNode target = outgoingFlow.getTarget();
-					bpmnDiagram.removeActivity(activity);
-					bpmnDiagram.addFlow(source, target, guard);
+					if ((incomingFlows.size() == 1) && (outgoingFlows.size() == 1)) {
+						BPMNNode source = incomingFlows.iterator().next().getSource();
+						BPMNNode target = outgoingFlows.iterator().next().getTarget();
+						bpmnDiagram.removeActivity(activity);
+						bpmnDiagram.addFlow(source, target, guard);
+					}
+					if ((incomingFlows.size() == 1) && (outgoingFlows.size() > 1)) {
+						{
+							BPMNNode source = incomingFlows.iterator().next().getSource();
+							Gateway parallelGateway = bpmnDiagram.addGateway("", GatewayType.PARALLEL);
+							bpmnDiagram.addFlow(source, parallelGateway, guard);
+							for (BPMNEdge<?, ?> outgoing : outgoingFlows) {
+								BPMNNode target = outgoing.getTarget();
+								bpmnDiagram.addFlow(parallelGateway, target, guard);
+							}
+							bpmnDiagram.removeActivity(activity);
+						}
+					}
 				}
 			}
 		}
+
 	}
 	
 	/**

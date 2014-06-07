@@ -69,7 +69,7 @@ public class ProcessTree2BPMNConverter {
 		convert(tree, bpmnDiagram);
 		
 		//Simplify BPMN diagram
-		BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
+		//BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
