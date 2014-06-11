@@ -9,7 +9,6 @@
 	<classpathentry kind="lib" path="stdlib/collections-generic-4.01.jar"/>
 	<classpathentry kind="lib" path="stdlib/colt.jar"/>
 	<classpathentry kind="lib" path="stdlib/commons-compress-1.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/commons-math-1.2.jar"/>
 	<classpathentry kind="lib" path="stdlib/FilterableSortableTablePanel.jar"/>
 	<classpathentry kind="lib" path="stdlib/flanagan.jar"/>
 	<classpathentry kind="lib" path="stdlib/jargs.jar"/>
@@ -46,9 +45,10 @@
 	<classpathentry kind="lib" path="packagelib/PNAnalysis.jar"/>
 	<classpathentry kind="lib" path="packagelib/ProcessTree.jar"/>
 	<classpathentry kind="lib" path="packagelib/Flex.jar"/>
-	<classpathentry kind="lib" path="lib/commons-io-2.4.jar"/>
 	<classpathentry kind="lib" path="packagelib/DataPetriNets.jar"/>
 	<classpathentry kind="lib" path="packagelib/Properties.jar"/>
 	<classpathentry kind="lib" path="packagelib/Widgets.jar"/>
+	<classpathentry kind="lib" path="packagelib/ApacheUtils-lib/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="stdlib/commons-math-3.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
