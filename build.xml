@@ -135,7 +135,6 @@
 						>
 							<dependency name="ApacheUtils"/>
 							<dependency name="BPMN"/>
-							<dependency name="BPMNAnalysis"/>
 							<dependency name="PetriNets"/>
 							<dependency name="ProcessTree"/>
 							<dependency name="Flex"/>
