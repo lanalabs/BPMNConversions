@@ -139,6 +139,9 @@
 							<dependency name="ProcessTree"/>
 							<dependency name="Flex"/>
 							<dependency name="DataPetriNets"/>
+							<!--a dummy dependency to make BPMNAnalysis work in the Nightly build
+							this dependecy will removed-->
+							<dependency name="FlexReplayer"/>
 						</package>
 					</packages>
 				</echoxml>
