@@ -46,7 +46,7 @@ public class BPMNUtils {
 		boolean diagramChanged = false;
 		do {
 			diagramChanged = false;
-			Collection<Gateway> toReduce = new HashSet<Gateway>();
+			Gateway gatewayToRemove = null;
 			for (Gateway gateway : diagram.getGateways()) {
 				for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(gateway)) {
 					if (flow.getTarget() instanceof Gateway) {
@@ -60,19 +60,33 @@ public class BPMNUtils {
 									BPMNNode followingNode = outFlow.getTarget();
 									followingNodes.add(followingNode);
 								}
-								toReduce.add(followingGateway);
+								Collection<BPMNNode> precNodes = new HashSet<BPMNNode>();
+								for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inFlow : diagram
+										.getInEdges(followingGateway)) {
+									BPMNNode precNode = inFlow.getSource();
+									if(!gateway.equals(precNode)) {
+										precNodes.add(precNode);
+									}
+								}
 								for (BPMNNode followingNode : followingNodes) {
 									diagram.addFlow(gateway, followingNode, "");
 								}
+								for (BPMNNode precNode : precNodes) {
+									diagram.addFlow(precNode, gateway, "");
+								}
+								gatewayToRemove = followingGateway;
 								diagramChanged = true;
+								break;
 							}
-
 						}
 					}
 				}
+				if(diagramChanged) {
+					break;
+				}
 			}
-			for (Gateway gateway : toReduce) {
-				diagram.removeGateway(gateway);
+			if(diagramChanged) {
+				diagram.removeGateway(gatewayToRemove);
 			}
 		} while (diagramChanged);
 	}
