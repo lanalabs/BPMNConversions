@@ -206,10 +206,10 @@ public class PetriNet2BPMNConverter {
 			// Find activities without paths to end event
 			for (Activity activity : bpmnDiagram.getActivities()) {
 				Set<DirectedGraphNode> descendants = dfs.findDescendants(activity);
-				System.out.println("+++++++++++++++++");
-				System.out.println(activity);
-				System.out.println("-----------------");
-				System.out.println(descendants);
+//				System.out.println("+++++++++++++++++");
+//				System.out.println(activity);
+//				System.out.println("-----------------");
+//				System.out.println(descendants);
 				
 				
 				boolean hasPathToEndEvent = false; 
@@ -470,7 +470,9 @@ public class PetriNet2BPMNConverter {
 			Map<String, Activity> conversionMap) {
 		for (Transition transition : petrinetGraph.getTransitions()) {
 			String label = BPMNUtils.EMPTY;
-			if (!transition.isInvisible() && transition.getLabel() != null && !transition.getLabel().isEmpty()) {
+			
+			if (!transition.isInvisible() && transition.getLabel() != null && !transition.getLabel().isEmpty()
+					&&(!transition.getLabel().startsWith("tau"))) {
 				label = transition.getLabel();
 			}
 			Activity activity = bpmnDiagram.addActivity(label, false, false, false, false, false);

@@ -9,6 +9,7 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
+import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway.GatewayType;
 
@@ -84,22 +85,23 @@ public class BPMNUtils {
 	 */
 	private static void mergeActivitiesAndGateways(BPMNDiagram diagram) {
 		for (Activity activity : diagram.getActivities()) {
+			if (numberOfOutgoingSequenceFlows(activity, diagram) == 1) {
+				for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(activity)) {
+					if (flow.getTarget() instanceof Gateway) {
+						Gateway followingGateway = (Gateway) flow.getTarget();
+						if (GatewayType.PARALLEL.equals(followingGateway.getGatewayType())) {
+							if (diagram.getInEdges(followingGateway).size() == 1) {
+								Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
+								for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
+										.getOutEdges(followingGateway)) {
+									BPMNNode followingNode = outFlow.getTarget();
+									followingNodes.add(followingNode);
+								}
+								diagram.removeGateway(followingGateway);
+								for (BPMNNode followingNode : followingNodes) {
+									diagram.addFlow(activity, followingNode, "");
 
-			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(activity)) {
-				if (flow.getTarget() instanceof Gateway) {
-					Gateway followingGateway = (Gateway) flow.getTarget();
-					if (GatewayType.PARALLEL.equals(followingGateway.getGatewayType())) {
-						if (diagram.getInEdges(followingGateway).size() == 1) {
-							Collection<BPMNNode> followingNodes = new HashSet<BPMNNode>();
-							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> outFlow : diagram
-									.getOutEdges(followingGateway)) {
-								BPMNNode followingNode = outFlow.getTarget();
-								followingNodes.add(followingNode);
-							}
-							diagram.removeGateway(followingGateway);
-							for (BPMNNode followingNode : followingNodes) {
-								diagram.addFlow(activity, followingNode, "");
-
+								}
 							}
 						}
 					}
@@ -107,20 +109,22 @@ public class BPMNUtils {
 			}
 
 			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getInEdges(activity)) {
-				if (flow.getSource() instanceof Gateway) {
-					Gateway precedingGateway = (Gateway) flow.getSource();
-					if (GatewayType.DATABASED.equals(precedingGateway.getGatewayType())) {
-						if (diagram.getOutEdges(precedingGateway).size() == 1) {
-							Collection<BPMNNode> precedingNodes = new HashSet<BPMNNode>();
-							for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inFlow : diagram
-									.getInEdges(precedingGateway)) {
-								BPMNNode precedingNode = inFlow.getSource();
-								precedingNodes.add(precedingNode);
-							}
-							diagram.removeGateway(precedingGateway);
-							for (BPMNNode precedingNode : precedingNodes) {
-								diagram.addFlow(precedingNode, activity, "");
+				if (numberOfIncomingSequenceFlows(activity, diagram) == 1) {
+					if (flow.getSource() instanceof Gateway) {
+						Gateway precedingGateway = (Gateway) flow.getSource();
+						if (GatewayType.DATABASED.equals(precedingGateway.getGatewayType())) {
+							if (diagram.getOutEdges(precedingGateway).size() == 1) {
+								Collection<BPMNNode> precedingNodes = new HashSet<BPMNNode>();
+								for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> inFlow : diagram
+										.getInEdges(precedingGateway)) {
+									BPMNNode precedingNode = inFlow.getSource();
+									precedingNodes.add(precedingNode);
+								}
+								diagram.removeGateway(precedingGateway);
+								for (BPMNNode precedingNode : precedingNodes) {
+									diagram.addFlow(precedingNode, activity, "");
 
+								}
 							}
 						}
 					}
@@ -128,7 +132,40 @@ public class BPMNUtils {
 			}
 		}
 	}
+	
+	
+	/**
+	 * Get the number of outgoing flows
+	 * @param node
+	 * @param diagram
+	 * @return
+	 */
+	public static int numberOfOutgoingSequenceFlows(BPMNNode node, BPMNDiagram diagram) {
+		int result = 0;
+		for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(node)) {
+			if (flow instanceof Flow) {
+				result++;
+			}
+		}
+		return result;
+	}
 
+	/**
+	 * Get the number of incoming flows
+	 * @param node
+	 * @param diagram
+	 * @return
+	 */
+	public static int numberOfIncomingSequenceFlows(BPMNNode node, BPMNDiagram diagram) {
+		int result = 0;
+		for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getInEdges(node)) {
+			if (flow instanceof Flow) {
+				result++;
+			}
+		}
+		return result;
+	}
+	
 	/**
 	 * Remove silent activities
 	 * 
