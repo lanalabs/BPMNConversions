@@ -44,6 +44,10 @@ returnLabels = { "BPMN Diagram"}, returnTypes = { BPMNDiagram.class},
 userAccessible = true, help = "Converts Data Petri net to BPMN diagram")
 public class DataPetriNet2BPMNConverter {
 	
+	protected Map<String, Activity> conversionMap = null;
+	protected Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
+	protected Map<String, DataObject> dataObjectsMap = new HashMap<String, DataObject>();
+	
 	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Data Petri net to BPMN", requiredParameterLabels = { 0 })
@@ -52,10 +56,7 @@ public class DataPetriNet2BPMNConverter {
 		progress.setCaption("Converting Data Petri net To BPMN diagram");
 				
 		BPMNDiagram bpmnDiagram = null;
-		Map<String, Activity> conversionMap = null;
-		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
-		Map<String, DataObject> dataObjectsMap = new HashMap<String, DataObject>();
-		
+
 		// Clone petri net not to make a recursion
 		Object[] resultOfClone = cloneToPetrinet(context, dataPetriNet);
 		PetrinetGraph clonePetrinet = (PetrinetGraph)resultOfClone[0];
