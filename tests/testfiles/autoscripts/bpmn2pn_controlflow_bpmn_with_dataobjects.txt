@@ -1,0 +1,22 @@
+print("TESTCASE: convert bpmn_with_dataobjects.xpdl to Petri net (control-flow)");
+
+String testFileRoot = System.getProperty("test.testFileRoot", ".");
+
+// --- load model
+String modelFile = "bpmn_with_dataobjects.xpdl";
+System.out.println("loading "+modelFile);
+// open_cnet_file(File) -> (Flex, StartTaskNodesSet, EndTaskNodesSet, CancellationRegion)
+bpmn_diagram = import_bpmn_model_from_xpdl_2_2_file(testFileRoot+"/"+modelFile);
+junit.framework.Assert.assertNotNull("BPMNDiagram is not null", bpmn_diagram);
+
+// --- call analysis
+System.out.println("calling translation to PN (control-flow)");
+// convert_bpmn_diagram_to_petri_net_control_flow_(BPMNDiagram) -> (Petrinet, Marking)
+pn_marking = convert_bpmn_diagram_to_petri_net_control_flow_(bpmn_diagram);
+junit.framework.Assert.assertNotNull("Petri net is not null", pn_marking[0]);
+junit.framework.Assert.assertNotNull("Marking is not null", pn_marking[1]);
+
+junit.framework.Assert.assertEquals("Correct number of places", 43, pn_marking[0].getPlaces().size());
+junit.framework.Assert.assertEquals("Correct number of transitions", 46, pn_marking[0].getTransitions().size());
+junit.framework.Assert.assertEquals("Correct number of arcs", 96, pn_marking[0].getEdges().size());
+junit.framework.Assert.assertEquals("Correct size of initial marking", 1, pn_marking[1].size());

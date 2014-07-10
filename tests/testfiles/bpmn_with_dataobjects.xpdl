@@ -1,0 +1,844 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package Id="XPDL_" Name="" xmlns="http://www.wfmc.org/2009/XPDL2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.wfmc.org/2009/XPDL2.2 http://www.xpdl.org/standards/xpdl-2.2/bpmnxpdl_40a.xsd">
+	<PackageHeader>
+	<XPDLVersion>2.2</XPDLVersion>
+<Vendor>ProM</Vendor>
+<Created>10/07/2014 03:23</Created>
+<Description>ProM Mined BPMN Model</Description>
+<Documentation>ProM Mined BPMN Model</Documentation>
+
+</PackageHeader>
+<Pools>
+	<Pool Id="Default-Pool" Process="MainProcess-WF_" BoundaryVisible="false" MainPool="true"/>
+
+</Pools>
+<MessageFlows/>
+<WorkflowProcesses>
+	<WorkflowProcess Id="MainProcess-WF_" Name="" AccessLevel="PUBLIC">
+	<ProcessHeader>
+	<Created>10/07/2014 03:23</Created>
+<Priority>Normal</Priority>
+
+</ProcessHeader>
+<RedefinableHeader>
+	<Author>ProM</Author>
+<Version>3.6</Version>
+
+</RedefinableHeader>
+<ActivitySets/>
+<Activities>
+	<Activity Id="-1594964410" Name="Notify Negative Decision">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="816.0" YCoordinate="123.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1009987944" Name="Renegotiate">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="1076.0" YCoordinate="316.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-1090104049" Name="Open the Credit">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="946.0" YCoordinate="179.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1417558692" Name="Simple Assessment">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="521.0" YCoordinate="204.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="958550796" Name="Advanced Assessment">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="521.0" YCoordinate="134.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-884024825" Name="Verify">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="301.0" YCoordinate="213.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="726382452" Name="Inform Customer A-L">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="1371.0" YCoordinate="339.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="141799540" Name="Inform Customer M-Z">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="1371.0" YCoordinate="269.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-1810532113" Name="Close Request">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="1651.0" YCoordinate="233.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-959843490" Name="Credit Request">
+	<Implementation>
+	<Task/>
+
+</Implementation>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="40.0" Width="80.0">
+	<Coordinates XCoordinate="81.0" YCoordinate="271.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-208208370" Name="START EVENT">
+	<Event>
+	<StartEvent Trigger="None"/>
+
+</Event>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="30.0" Width="30.0">
+	<Coordinates XCoordinate="1.0" YCoordinate="276.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1108879324" Name="END EVENT">
+	<Event>
+	<EndEvent Result="None"/>
+
+</Event>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="30.0" Width="30.0">
+	<Coordinates XCoordinate="1781.0" YCoordinate="238.0"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-1810091751" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="XOR"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1501.0" YCoordinate="286.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1720252707" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="XOR"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1213.5" YCoordinate="176.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1121615944" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="XOR">
+	<TransitionRefs>
+	<TransitionRef Id="-1841288996" Name="-1841288996"/>
+<TransitionRef Id="1888189697" Name="1888189697"/>
+<TransitionRef Id="1825898729" Name="1825898729"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="438.5" YCoordinate="161.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="701315670" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="XOR"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="218.5" YCoordinate="280.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-289014163" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="XOR">
+	<TransitionRefs>
+	<TransitionRef Id="-1071583219" Name="-1071583219"/>
+<TransitionRef Id="-2002595118" Name="-2002595118"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1296.0" YCoordinate="284.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1235445975" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="XOR"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="658.5" YCoordinate="280.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-795140394" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="XOR"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1213.5" YCoordinate="230.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-86089464" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="XOR">
+	<TransitionRefs>
+	<TransitionRef Id="-281727203" Name="-281727203"/>
+<TransitionRef Id="1600985018" Name="1600985018"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="741.0" YCoordinate="191.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1148817098" Name="Exclusive gateway">
+	<Route MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="XOR">
+	<TransitionRefs>
+	<TransitionRef Id="-1990743997" Name="-1990743997"/>
+<TransitionRef Id="-1745057297" Name="-1745057297"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="973.5" YCoordinate="124.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="1270092535" Name="Parallel gateway">
+	<Route GatewayType="Parallel" MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Join Type="AND"/>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1576.0" YCoordinate="239.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="727394740" Name="Parallel gateway">
+	<Route GatewayType="Parallel" MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="AND">
+	<TransitionRefs>
+	<TransitionRef Id="1623344986" Name="1623344986"/>
+<TransitionRef Id="-865429636" Name="-865429636"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="548.5" YCoordinate="279.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="907483872" Name="Parallel gateway">
+	<Route GatewayType="Parallel" MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="AND">
+	<TransitionRefs>
+	<TransitionRef Id="-1823948068" Name="-1823948068"/>
+<TransitionRef Id="2118601982" Name="2118601982"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="1103.5" YCoordinate="135.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+<Activity Id="-1455595184" Name="Parallel gateway">
+	<Route GatewayType="Parallel" MarkerVisible="true"/>
+<TransitionRestrictions>
+	<TransitionRestriction>
+	<Split Type="AND">
+	<TransitionRefs>
+	<TransitionRef Id="1019934401" Name="1019934401"/>
+<TransitionRef Id="-2014445205" Name="-2014445205"/>
+
+</TransitionRefs>
+
+</Split>
+
+</TransitionRestriction>
+
+</TransitionRestrictions>
+<NodeGraphicsInfos>
+	<NodeGraphicsInfo Height="25.0" Width="25.0">
+	<Coordinates XCoordinate="843.5" YCoordinate="192.5"/>
+
+</NodeGraphicsInfo>
+
+</NodeGraphicsInfos>
+
+</Activity>
+
+</Activities>
+<Transitions>
+	<Transition Id="-1841288996" From="1121615944" To="1417558692">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="451.0" YCoordinate="174.0"/>
+<Coordinates XCoordinate="561.0" YCoordinate="224.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="2105727724" From="-1810532113" To="1108879324">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1691.0" YCoordinate="253.0"/>
+<Coordinates XCoordinate="1796.0" YCoordinate="253.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1623344986" From="727394740" To="1720252707">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="561.0" YCoordinate="292.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="189.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1697358038" From="-208208370" To="-959843490">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="16.0" YCoordinate="291.0"/>
+<Coordinates XCoordinate="121.0" YCoordinate="291.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1869656590" From="141799540" To="-1810091751">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1411.0" YCoordinate="289.0"/>
+<Coordinates XCoordinate="1513.5" YCoordinate="299.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1071583219" From="-289014163" To="726382452">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1308.5" YCoordinate="297.0"/>
+<Coordinates XCoordinate="1411.0" YCoordinate="359.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-865429636" From="727394740" To="-795140394">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="561.0" YCoordinate="292.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="243.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-677253366" From="-1810091751" To="1270092535">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1513.5" YCoordinate="299.0"/>
+<Coordinates XCoordinate="1588.5" YCoordinate="252.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1823948068" From="907483872" To="-795140394">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1116.0" YCoordinate="148.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="243.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-66322833" From="-795140394" To="-289014163">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1226.0" YCoordinate="243.0"/>
+<Coordinates XCoordinate="1308.5" YCoordinate="297.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="37332387" From="701315670" To="-884024825">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="231.0" YCoordinate="293.0"/>
+<Coordinates XCoordinate="341.0" YCoordinate="233.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1990743997" From="1148817098" To="1009987944">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="986.0" YCoordinate="137.0"/>
+<Coordinates XCoordinate="1116.0" YCoordinate="336.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-23366432" From="-959843490" To="701315670">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="121.0" YCoordinate="291.0"/>
+<Coordinates XCoordinate="231.0" YCoordinate="293.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-65120365" From="1009987944" To="701315670">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1116.0" YCoordinate="336.0"/>
+<Coordinates XCoordinate="231.0" YCoordinate="293.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="2118601982" From="907483872" To="1720252707">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1116.0" YCoordinate="148.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="189.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1645402659" From="1417558692" To="1235445975">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="561.0" YCoordinate="224.0"/>
+<Coordinates XCoordinate="671.0" YCoordinate="293.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-2115452484" From="1270092535" To="-1810532113">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1588.5" YCoordinate="252.0"/>
+<Coordinates XCoordinate="1691.0" YCoordinate="253.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-281727203" From="-86089464" To="-1594964410">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="753.5" YCoordinate="204.0"/>
+<Coordinates XCoordinate="856.0" YCoordinate="143.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1888189697" From="1121615944" To="727394740">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="451.0" YCoordinate="174.0"/>
+<Coordinates XCoordinate="561.0" YCoordinate="292.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="980685660" From="1235445975" To="-86089464">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="671.0" YCoordinate="293.0"/>
+<Coordinates XCoordinate="753.5" YCoordinate="204.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-719803922" From="958550796" To="1235445975">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="561.0" YCoordinate="154.0"/>
+<Coordinates XCoordinate="671.0" YCoordinate="293.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1745057297" From="1148817098" To="907483872">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="986.0" YCoordinate="137.0"/>
+<Coordinates XCoordinate="1116.0" YCoordinate="148.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1600985018" From="-86089464" To="-1455595184">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="753.5" YCoordinate="204.0"/>
+<Coordinates XCoordinate="856.0" YCoordinate="205.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-570739010" From="-1090104049" To="1720252707">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="986.0" YCoordinate="199.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="189.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-2002595118" From="-289014163" To="141799540">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1308.5" YCoordinate="297.0"/>
+<Coordinates XCoordinate="1411.0" YCoordinate="289.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="908006033" From="-884024825" To="1121615944">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="341.0" YCoordinate="233.0"/>
+<Coordinates XCoordinate="451.0" YCoordinate="174.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1019934401" From="-1455595184" To="-1090104049">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="856.0" YCoordinate="205.0"/>
+<Coordinates XCoordinate="986.0" YCoordinate="199.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1788541334" From="-1594964410" To="1148817098">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="856.0" YCoordinate="143.0"/>
+<Coordinates XCoordinate="986.0" YCoordinate="137.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1456754093" From="1720252707" To="1270092535">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1226.0" YCoordinate="189.0"/>
+<Coordinates XCoordinate="1588.5" YCoordinate="252.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="1825898729" From="1121615944" To="958550796">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="451.0" YCoordinate="174.0"/>
+<Coordinates XCoordinate="561.0" YCoordinate="154.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-1030672866" From="726382452" To="-1810091751">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="1411.0" YCoordinate="359.0"/>
+<Coordinates XCoordinate="1513.5" YCoordinate="299.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+<Transition Id="-2014445205" From="-1455595184" To="-795140394">
+	<ConnectorGraphicsInfos>
+	<ConnectorGraphicsInfo>
+	<Coordinates XCoordinate="856.0" YCoordinate="205.0"/>
+<Coordinates XCoordinate="1226.0" YCoordinate="243.0"/>
+
+</ConnectorGraphicsInfo>
+
+</ConnectorGraphicsInfos>
+
+</Transition>
+
+</Transitions>
+
+</WorkflowProcess>
+
+</WorkflowProcesses>
+
+</Package>

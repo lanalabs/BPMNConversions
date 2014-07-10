@@ -14,12 +14,12 @@ import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
 
 /**
- * Conversion of a BPMN model to Petri nets 
+ * Conversion of a BPMN model to Petri nets, only considering the control-flow of the model. 
  *
  * @author Dirk Fahland
  * Jul 18, 2013
  */
-@Plugin(name = "Convert BPMN diagram to Petri net", parameterLabels = { "Petri net" }, 
+@Plugin(name = "Convert BPMN diagram to Petri net (control-flow)", parameterLabels = { "Petri net" }, 
 returnLabels = { "Petri net", "Initial Marking"}, returnTypes = { Petrinet.class, Marking.class }, 
 userAccessible = true, help = "Convert BPMN diagram to Petri net")
 public class BPMN2PetriNetConverter_Plugin {
