@@ -31,19 +31,20 @@ public class BPMNUtils {
 	 * @param diagram
 	 */
 	public static void simplifyBPMNDiagram(Map<String, Activity> conversionMap, BPMNDiagram diagram) {
-		removeSilentActivities(conversionMap, diagram);
+        if (diagram == null) throw new IllegalArgumentException("'conversionMap' is null");
+
+        removeSilentActivities(conversionMap, diagram);
+        reduceGateways(diagram);
 		mergeActivitiesAndGateways(diagram);
-		reduceGateways(diagram);
 	}
 	
 	/**
 	 * Reduce gateways
 	 * 
-	 * @param conversionMap
 	 * @param diagram
 	 */
 	private static void reduceGateways(BPMNDiagram diagram) {
-		boolean diagramChanged = false;
+		boolean diagramChanged;
 		do {
 			diagramChanged = false;
 			Gateway gatewayToRemove = null;
@@ -69,10 +70,10 @@ public class BPMNUtils {
 									}
 								}
 								for (BPMNNode followingNode : followingNodes) {
-									diagram.addFlow(gateway, followingNode, "");
+									addFlow(diagram, gateway, followingNode);
 								}
 								for (BPMNNode precNode : precNodes) {
-									diagram.addFlow(precNode, gateway, "");
+									addFlow(diagram, precNode, gateway);
 								}
 								gatewayToRemove = followingGateway;
 								diagramChanged = true;
@@ -94,12 +95,11 @@ public class BPMNUtils {
 	/**
 	 * Merge activities and gateways
 	 * 
-	 * @param conversionMap
 	 * @param diagram
 	 */
 	private static void mergeActivitiesAndGateways(BPMNDiagram diagram) {
 		for (Activity activity : diagram.getActivities()) {
-			if (numberOfOutgoingSequenceFlows(activity, diagram) == 1) {
+			//if (numberOfOutgoingSequenceFlows(activity, diagram) == 1) {
 				for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getOutEdges(activity)) {
 					if (flow.getTarget() instanceof Gateway) {
 						Gateway followingGateway = (Gateway) flow.getTarget();
@@ -113,17 +113,17 @@ public class BPMNUtils {
 								}
 								diagram.removeGateway(followingGateway);
 								for (BPMNNode followingNode : followingNodes) {
-									diagram.addFlow(activity, followingNode, "");
+									addFlow(diagram, activity, followingNode);
 
 								}
 							}
 						}
 					}
-				}
+				//}
 			}
 
 			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> flow : diagram.getInEdges(activity)) {
-				if (numberOfIncomingSequenceFlows(activity, diagram) == 1) {
+				//if (numberOfIncomingSequenceFlows(activity, diagram) == 1) {
 					if (flow.getSource() instanceof Gateway) {
 						Gateway precedingGateway = (Gateway) flow.getSource();
 						if (GatewayType.DATABASED.equals(precedingGateway.getGatewayType())) {
@@ -136,13 +136,13 @@ public class BPMNUtils {
 								}
 								diagram.removeGateway(precedingGateway);
 								for (BPMNNode precedingNode : precedingNodes) {
-									diagram.addFlow(precedingNode, activity, "");
+									addFlow(diagram, precedingNode, activity);
 
 								}
 							}
 						}
 					}
-				}
+				//}
 			}
 		}
 	}
@@ -192,17 +192,17 @@ public class BPMNUtils {
 			if (EMPTY.equals(activity.getLabel())) {
 				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> inEdges = diagram.getInEdges(activity);
 				Collection<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> outEdges = diagram.getOutEdges(activity);
-				if ((inEdges.iterator().hasNext() == true) && (outEdges.iterator().hasNext() == true)) {
+				if ((inEdges.iterator().hasNext()) && (outEdges.iterator().hasNext())) {
 					BPMNNode source = inEdges.iterator().next().getSource();
 					BPMNNode target = outEdges.iterator().next().getTarget();
-					diagram.addFlow(source, target, "");
+					addFlow(diagram, source, target);
 				}
 				diagram.removeActivity(activity);
 				
 				if (conversionMap != null) {
 					Set<String> idToRemove = new HashSet<String>();
 					for (String id : conversionMap.keySet()) {
-						if (activity.getId().equals(conversionMap.get(id))) {
+						if (activity == conversionMap.get(id)) {
 							idToRemove.add(id);
 						}
 					}
@@ -213,4 +213,10 @@ public class BPMNUtils {
 			}
 		}
 	}
+
+    private static Flow addFlow(BPMNDiagram diagram, BPMNNode source, BPMNNode target) {
+        for (Flow flow : diagram.getFlows())
+            if (source == flow.getSource() && target == flow.getTarget()) return null;
+        return diagram.addFlow(source, target, "");
+    }
 }

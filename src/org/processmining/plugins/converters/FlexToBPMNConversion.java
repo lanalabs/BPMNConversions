@@ -52,7 +52,7 @@ public class FlexToBPMNConversion {
 
         FlexToBPMNConverter converter = new FlexToBPMNConverter(model);
         BPMNDiagram diagram = converter.convert();
-        BPMNUtils.simplifyBPMNDiagram(null, diagram);
+        BPMNUtils.simplifyBPMNDiagram(converter.getConversionMap(), diagram);
         return diagram;
     }
 

@@ -17,28 +17,39 @@ public class BPMNConversionConnection extends AbstractConnection {
 	public static String PROCESS_TREE = "Process tree";
 	public static String CONVERSION_MAP = "Conversion map";
 	
-	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
+	private BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, Map<String, Activity> conversionMap) {
+        super(label);
+        if (bpmnDiagram == null) throw new IllegalArgumentException("'bpmnDiagram' is null");
+        if (conversionMap == null) throw new IllegalArgumentException("'conversionMap' is null");
+        put(BPMN_DIAGRAM, bpmnDiagram);
+        put(CONVERSION_MAP, conversionMap);
+    }
+
+    public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
 			Map<String, Activity> conversionMap) {
-		super(label);
-		put(BPMN_DIAGRAM, bpmnDiagram);
+		this(label, bpmnDiagram, conversionMap);
+
+        if (petriNet == null) throw new IllegalArgumentException("'petriNet' is null");
 		put(PETRI_NET, petriNet);
-		put(CONVERSION_MAP, conversionMap);
 	}
 	
 	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
 			DataPetriNet dataPetrinet, Map<String, Activity> conversionMap) {
-		super(label);
-		put(BPMN_DIAGRAM, bpmnDiagram);
-		put(PETRI_NET, petriNet);
+		this(label, bpmnDiagram, conversionMap);
+
+        if (petriNet == null) throw new IllegalArgumentException("'petriNet' is null");
+        if (dataPetrinet == null) throw new IllegalArgumentException("'dataPetriNet' is null");
+
+        put(PETRI_NET, petriNet);
 		put(DATA_PETRI_NET, dataPetrinet);
-		put(CONVERSION_MAP, conversionMap);
 	}
 	
 	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, ProcessTree tree,
 			Map<String, Activity> conversionMap) {
-		super(label);
-		put(BPMN_DIAGRAM, bpmnDiagram); 
+		this(label, bpmnDiagram, conversionMap);
+
+        if (tree == null) throw new IllegalArgumentException("'tree' is null");
+
 		put(PROCESS_TREE, tree);
-		put(CONVERSION_MAP, (conversionMap));
 	}
 }

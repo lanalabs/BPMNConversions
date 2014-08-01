@@ -1,11 +1,6 @@
 package org.processmining.plugins.converters;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.processmining.models.flexiblemodel.Flex;
 import org.processmining.models.flexiblemodel.FlexEdge;
@@ -16,6 +11,7 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
+import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 
 public class FlexToBPMNConverter {
@@ -27,6 +23,8 @@ public class FlexToBPMNConverter {
     private Map<FlexNode, Activity> activityMap;
     private Map<FlexEdge<? extends FlexNode, ? extends FlexNode>, BPMNNode> arcNodesOutputMap;
     private Map<FlexEdge<? extends FlexNode, ? extends FlexNode>, BPMNNode> arcNodesInputMap;
+
+    private Map<String, Activity> conversionMap = new HashMap<String, Activity>();
 
     public FlexToBPMNConverter(Flex causalNet) {
         if (causalNet == null) throw new IllegalArgumentException("'causalNet' is null object");
@@ -43,6 +41,7 @@ public class FlexToBPMNConverter {
         convertOutputBindings(result);
         convertInputBindings(result);
         addArcFlows(result);
+        removeSyntheticStartAndEndActivities(result);
         return result;
     }
 
@@ -81,6 +80,7 @@ public class FlexToBPMNConverter {
         for (FlexNode node : causalNet.getNodes()) {
             Activity activity = result.addActivity(node.getLabel(), false, false, false, false, false);
             activityMap.put(node, activity);
+            conversionMap.put(node.getId().toString(), activity);
             if (node == startActivity) {
                 Event startEvent =
                         result.addEvent("start", Event.EventType.START, Event.EventTrigger.NONE, Event.EventUse.CATCH,
@@ -89,8 +89,8 @@ public class FlexToBPMNConverter {
             }
             if (node == endActivity) {
                 Event endEvent =
-                        result.addEvent("end", Event.EventType.END, Event.EventTrigger.NONE, Event.EventUse.THROW,
-                                        true, null);
+                        result.addEvent("end", Event.EventType.END, Event.EventTrigger.NONE, Event.EventUse.THROW, true,
+                                        null);
                 result.addFlow(activity, endEvent, "");
             }
         }
@@ -208,11 +208,47 @@ public class FlexToBPMNConverter {
 
     private void addArcFlows(BPMNDiagram result) {
         for (FlexEdge<? extends FlexNode, ? extends FlexNode> edge : causalNet.getEdges())
-            result.addFlow(arcNodesOutputMap.get(edge), arcNodesInputMap.get(edge), "");
+            if (arcNodesInputMap.containsKey(edge) && arcNodesOutputMap.containsKey(edge))
+                result.addFlow(arcNodesOutputMap.get(edge), arcNodesInputMap.get(edge), "");
 
+    }
+
+    private void removeSyntheticStartAndEndActivities(BPMNDiagram diagram) {
+        Activity start = conversionMap.get(startActivity.getId().toString());
+        if (!"start".equals(start.getLabel())) return;
+        Activity end = conversionMap.get(endActivity.getId().toString());
+        if (!"end".equals(end.getLabel())) return;
+
+        Flow startIn = null, startOut = null, endIn = null, endOut = null;
+        for (Flow flow : diagram.getFlows()) {
+            if (flow.getSource().equals(start)) startOut = flow;
+            else if (flow.getTarget().equals(start)) startIn = flow;
+            else if (flow.getSource().equals(end)) endOut = flow;
+            else if (flow.getTarget().equals(end)) endIn = flow;
+        }
+
+        removeSyntheticActivity(start, startIn, startOut, diagram);
+        removeSyntheticActivity(end, endIn, endOut, diagram);
+    }
+
+    private void removeSyntheticActivity(Activity activity, Flow inFlow, Flow outFlow, BPMNDiagram diagram) {
+        if (inFlow == null || outFlow == null) return;
+
+        BPMNNode predecessor = inFlow.getSource();
+        BPMNNode successor = outFlow.getTarget();
+
+        diagram.removeEdge(inFlow);
+        diagram.removeEdge(outFlow);
+
+        diagram.addFlow(predecessor, successor, "");
+        diagram.removeActivity(activity);
     }
 
     public Flex getCausalNet() {
         return causalNet;
+    }
+
+    public Map<String, Activity> getConversionMap() {
+        return conversionMap;
     }
 }

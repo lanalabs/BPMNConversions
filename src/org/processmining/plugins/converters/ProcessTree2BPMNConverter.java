@@ -69,7 +69,7 @@ public class ProcessTree2BPMNConverter {
 		convert(tree, bpmnDiagram);
 		
 		//Simplify BPMN diagram
-		//BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
+		BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -237,7 +237,8 @@ public class ProcessTree2BPMNConverter {
 		
 			// Add new task
 			String label = BPMNUtils.EMPTY;
-			if (taskNode.getName() != null && !taskNode.getName().isEmpty()) {
+			if (taskNode.getName() != null && !taskNode.getName().isEmpty() 
+					&& !(taskNode instanceof Task.Automatic)) {
 				label = taskNode.getName();
 			}
 			Activity task = bpmnDiagram.addActivity(label, false, false, false, false, false);
@@ -362,43 +363,7 @@ public class ProcessTree2BPMNConverter {
 		}
 		bpmnDiagram.addFlow(prevNode, target, "");
 	}
-	
-//	/**
-//	 * Expand deferred choice
-//	 * 
-//	 * @param conversionMap
-//	 * @param activity
-//	 * @param blockNode
-//	 * @param tree
-//	 * @param bpmnDiagram
-//	 * @param gatewayType
-//	 */
-//	private void expandDefChoice(Map<Activity, Node> conversionMap, Activity activity, Block blockNode, 
-//			ProcessTree tree, BPMNDiagram bpmnDiagram) {
-//		
-//		// Delete activity and corresponding incoming and outgoing flows
-//		BPMNNode source = deleteIncomingFlow(activity, bpmnDiagram);
-//		BPMNNode target = deleteOutgoingFlow(activity, bpmnDiagram);
-//		bpmnDiagram.removeActivity(activity);
-//		
-//		Gateway eventBasedGateway = bpmnDiagram.addGateway("", GatewayType.EVENTBASED);
-//		Gateway xorJoin = bpmnDiagram.addGateway("", GatewayType.DATABASED);
-//		bpmnDiagram.addFlow(source, eventBasedGateway, "");		                                                                                                                                            
-//		bpmnDiagram.addFlow(xorJoin, target, "");	
-//		
-//		// Add new activities
-//		for(Node child : blockNode.getChildren()) {
-//			Event catchSignalEvent  = 
-//					bpmnDiagram.addEvent("", EventType.INTERMEDIATE, EventTrigger.SIGNAL, EventUse.CATCH, null);
-//			bpmnDiagram.addFlow(eventBasedGateway, catchSignalEvent, "");
-//			Activity newActivity  = bpmnDiagram.addActivity(PROCESS_TREE_INTERNAL_NODE, false, 
-//					false, false, false, false);
-//			bpmnDiagram.addFlow(catchSignalEvent, newActivity, "");
-//			bpmnDiagram.addFlow(newActivity, xorJoin, "");
-//			conversionMap.put(newActivity, child);
-//		}
-//	}
-	
+
 	/**
 	 * Expand loop
 	 * 

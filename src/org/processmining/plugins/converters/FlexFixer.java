@@ -1,10 +1,6 @@
 package org.processmining.plugins.converters;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.processmining.models.flexiblemodel.Flex;
 import org.processmining.models.flexiblemodel.FlexNode;
@@ -30,10 +26,14 @@ public class FlexFixer {
         if (this.declaredStartNodes != null && !this.declaredStartNodes.isEmpty())
             startNodes.addAll(this.declaredStartNodes);
         else startNodes = findStartNodes();
+        if (startNodes == null || startNodes.isEmpty())
+            throw new IllegalStateException("No start nodes found in the C-net");
 
         Collection<SetFlex> endNodes = new ArrayList<SetFlex>();
         if (this.declaredEndNodes != null && !this.declaredEndNodes.isEmpty()) endNodes.addAll(this.declaredEndNodes);
         else endNodes = findEndNodes();
+        if (endNodes == null || endNodes.isEmpty())
+            throw new IllegalStateException("No end nodes found in the C-net");
 
         if (startNodes.size() > 1) addCommonStartNode(startNodes);
         else commonStartNode = startNodes.iterator().next().first();
