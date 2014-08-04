@@ -35,12 +35,12 @@ public class BPMN2PetriNetConverter {
 //	private static final String PARALLEL_GATEWAY = "Parallel gateway";
 //	private static final String EMPTY = "Empty";
 	
-	private BPMNDiagram bpmn;
-	private Petrinet net;
-	private Marking m;
+	protected BPMNDiagram bpmn;
+	protected Petrinet net;
+	protected Marking m;
 	
-	private List<String> warnings = new ArrayList<String>();
-	private List<String> errors = new ArrayList<String>();
+	protected List<String> warnings = new ArrayList<String>();
+	protected List<String> errors = new ArrayList<String>();
 	
 	/**
 	 * maps each BPMN control-flow edge to a place
