@@ -39,7 +39,7 @@ import org.processmining.processtree.Task.Manual;
  * @author Anna Kalenkova
  * Oct 01, 2013
  */
-@Plugin(name = "Convert Process tree to BPMN diagram", parameterLabels = { "Process tree" }, 
+@Plugin(name = "Convert Process tree to BPMN diagram", parameterLabels = { "Process tree", "Simplify"}, 
 returnLabels = { "BPMN Diagram,", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, 
 userAccessible = true, help = "Converts Process tree to BPMN diagram")
 public class ProcessTree2BPMNConverter {
@@ -53,8 +53,18 @@ public class ProcessTree2BPMNConverter {
 	private Map<BPMNNode, Node> conversionMap = new HashMap<BPMNNode, Node>();
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
-	@PluginVariant(variantLabel = "Convert Process tree to BPMN", requiredParameterLabels = { 0 })
-	public Object[] convert(UIPluginContext context, ProcessTree tree) {
+	@PluginVariant(variantLabel = "Convert Process tree to BPMN and simplify", requiredParameterLabels = { 0 })
+	public Object[] convertToBPMNAndSimplify(UIPluginContext context, ProcessTree tree) {	
+		return convert(context, tree, true);
+	}
+	
+	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
+	@PluginVariant(variantLabel = "Convert Process tree to BPMN", requiredParameterLabels = { 0, 1 })
+	public Object[] convertToBPMN(UIPluginContext context, ProcessTree tree, boolean simplify) {	
+		return convert(context, tree, simplify);
+	}
+	
+	private Object[] convert(UIPluginContext context, ProcessTree tree, boolean simplify) {
 		
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Process tree To BPMN diagram");
@@ -69,7 +79,9 @@ public class ProcessTree2BPMNConverter {
 		convert(tree, bpmnDiagram);
 		
 		//Simplify BPMN diagram
-		BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
+		if(simplify) {
+			BPMNUtils.simplifyBPMNDiagram(null, bpmnDiagram);
+		}
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
