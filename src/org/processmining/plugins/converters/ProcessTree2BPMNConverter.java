@@ -54,17 +54,17 @@ public class ProcessTree2BPMNConverter {
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Process tree to BPMN and simplify", requiredParameterLabels = { 0 })
-	public Object[] convertToBPMNAndSimplify(UIPluginContext context, ProcessTree tree) {	
-		return convert(context, tree, true);
+	public Object[] convert(UIPluginContext context, ProcessTree tree) {	
+		return convertToBPMN(context, tree, true);
 	}
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Process tree to BPMN", requiredParameterLabels = { 0, 1 })
-	public Object[] convertToBPMN(UIPluginContext context, ProcessTree tree, boolean simplify) {	
-		return convert(context, tree, simplify);
+	public Object[] convert(UIPluginContext context, ProcessTree tree, boolean simplify) {	
+		return convertToBPMN(context, tree, simplify);
 	}
 	
-	private Object[] convert(UIPluginContext context, ProcessTree tree, boolean simplify) {
+	private Object[] convertToBPMN(UIPluginContext context, ProcessTree tree, boolean simplify) {
 		
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Process tree To BPMN diagram");
