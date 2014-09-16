@@ -78,5 +78,6 @@
 	<classpathentry kind="lib" path="packagelib/ApacheUtils.jar"/>
 	<classpathentry kind="lib" path="packagelib/Widgets-lib/Widgets.jar"/>
 	<classpathentry kind="lib" path="stdlib/guava-16.0.1.jar"/>
+	<classpathentry kind="lib" path="tests/libs-external/mockito-all-1.9.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
