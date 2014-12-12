@@ -132,13 +132,31 @@ public class DataPetriNet2BPMNConverter {
 				PNWDTransition pnwdTransition = (PNWDTransition)transition;
 				Set<DataElement> readDataElements = pnwdTransition.getReadOperations();
 				for(DataElement readDataElement : readDataElements) {
-					bpmnDiagram.addDataAssociation(dataObjectsMap.get(readDataElement.getId().toString()),
-							conversionMap.get(transitionsMap.get(transition).getId().toString()), "");
+					//If transition is invisible, it was deleted during the simplification
+					//and we have to take visible transition successors 
+					if (transition.isInvisible()) {
+						for (Transition successor : transition.getVisibleSuccessors()) {
+							bpmnDiagram.addDataAssociation(dataObjectsMap.get(readDataElement.getId().toString()),
+									conversionMap.get(transitionsMap.get(successor).getId().toString()), "");
+						}
+					} else {
+						bpmnDiagram.addDataAssociation(dataObjectsMap.get(readDataElement.getId().toString()),
+								conversionMap.get(transitionsMap.get(transition).getId().toString()), "");
+					}		
 				}
 				Set<DataElement> writeDataElements = pnwdTransition.getWriteOperations();
 				for(DataElement writeDataElement : writeDataElements) {
-					bpmnDiagram.addDataAssociation(conversionMap.get(transitionsMap.get(transition).getId().toString()),
+					//If transition is invisible, it was deleted during the simplification
+					//and we have to take visible transition successors 
+					if (transition.isInvisible()) {
+						for (Transition successor : transition.getVisibleSuccessors()) {
+							bpmnDiagram.addDataAssociation(conversionMap.get(transitionsMap.get(successor).getId().toString()),
+									dataObjectsMap.get(writeDataElement.getId().toString()), "");
+						}
+					} else {
+						bpmnDiagram.addDataAssociation(conversionMap.get(transitionsMap.get(transition).getId().toString()),
 							dataObjectsMap.get(writeDataElement.getId().toString()), "");
+					}
 				}
 			}
 		}
