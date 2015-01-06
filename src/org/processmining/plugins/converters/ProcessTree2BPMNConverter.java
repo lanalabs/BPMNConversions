@@ -308,7 +308,7 @@ public class ProcessTree2BPMNConverter {
 		bpmnDiagram.addFlow(event, newActivity, "");
 		bpmnDiagram.addFlow(newActivity, target, "");
 		conversionMap.put(newActivity, child);
-		
+		conversionMap.put(event, eventNode);
 		conversionMap.remove(activity);
 		expandNodes(tree, bpmnDiagram);
 	}
