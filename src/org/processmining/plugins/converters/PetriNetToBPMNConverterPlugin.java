@@ -251,16 +251,25 @@ public class PetriNetToBPMNConverterPlugin {
 	 * @return
 	 */
 	private Marking retrieveMarking(UIPluginContext context, PetrinetGraph petrinetGraph) {
-		Marking marking = null;
+		Marking marking = new Marking();
 		try {
 			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager().getFirstConnection(
 					InitialMarkingConnection.class, context, petrinetGraph);
 			marking = initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
 		} catch (ConnectionCannotBeObtained e) {
-			context.log("Can't obtain connection for " + petrinetGraph.getLabel());
-			e.printStackTrace();
+			Place sourcePlace = retrieveSourcePlace(petrinetGraph);
+			marking.add(sourcePlace);
 		}
 		return marking;
+	}
+	
+	private Place retrieveSourcePlace(PetrinetGraph petrinetGraph) {
+		for(Place place : petrinetGraph.getPlaces()) {
+			if ((petrinetGraph.getInEdges(place) == null) || (petrinetGraph.getInEdges(place).size() == 0)) {
+				return place;
+			}
+		}
+		return null;
 	}
 
 	/**
