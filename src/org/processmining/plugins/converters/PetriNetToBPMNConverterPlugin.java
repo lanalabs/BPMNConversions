@@ -506,7 +506,9 @@ public class PetriNetToBPMNConverterPlugin {
 		Marking newMarking = new Marking();
 
 		for (Transition transition : petriNet.getTransitions()) {
-			transitionsMap.put(transition, clonePetriNet.addTransition(transition.getLabel()));
+			Transition newTransition = clonePetriNet.addTransition(transition.getLabel());
+			newTransition.setInvisible(transition.isInvisible());
+			transitionsMap.put(transition, newTransition);
 		}
 		for (Place place : petriNet.getPlaces()) {
 			placesMap.put(place, clonePetriNet.addPlace(place.getLabel()));
