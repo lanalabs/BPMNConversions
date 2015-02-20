@@ -328,7 +328,7 @@ public class FlexToBPMNConverterTest {
         Collection<Event> events = diagram.getEvents();
         Collection<Activity> activities = diagram.getActivities();
         Collection<Gateway> gateways = diagram.getGateways();
-        Set<Flow> flows = diagram.getFlows();
+        Collection<Flow> flows = diagram.getFlows();
 
         // check sizes
         assertEquals(2, events.size());
