@@ -43,10 +43,42 @@ public class SubprocessDiscovery {
 	 */
 	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> dominators;
 	
+	public Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> getDominators() {
+		return dominators;
+	}
+
 	/**
 	 * Post-dominators for all diagram nodes
 	 */
 	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> postDominators;
+	
+	public Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> getPostDominators() {
+		return postDominators;
+	}
+
+	/**
+	 * Tree of dominators (specifies children for each node)
+	 */
+	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> treeOfDominators;
+	
+	private Map<AbstractDirectedGraphNode, AbstractDirectedGraphNode> subProcessBorders;
+	
+	public Map<AbstractDirectedGraphNode, AbstractDirectedGraphNode> getSubProcessBorders() {
+		return subProcessBorders;
+	}
+
+	public Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> getTreeOfDominators() {
+		return treeOfDominators;
+	}
+
+	public Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> getTreeOfPostDominators() {
+		return treeOfPostDominators;
+	}
+
+	/**
+	 * Tree of post-dominators (specifies children for each node)
+	 */
+	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> treeOfPostDominators;
 	
 	public SubprocessDiscovery(DirectedGraph<? extends AbstractDirectedGraphNode, 
 			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode startNode,
@@ -57,8 +89,58 @@ public class SubprocessDiscovery {
 		this.endNode = endNode;
 		this.dominators = determineDominatorsForGraphNodes(false);
 		this.postDominators = determineDominatorsForGraphNodes(true);
-		
+		this.treeOfDominators = constructTree(dominators);
+		this.treeOfPostDominators = constructTree(postDominators);
+		this.subProcessBorders = constrctSubProcBorders();
 	}
+	
+	private Map<AbstractDirectedGraphNode, AbstractDirectedGraphNode> constrctSubProcBorders() {
+		subProcessBorders = new HashMap<AbstractDirectedGraphNode, AbstractDirectedGraphNode>(); 
+		for(AbstractDirectedGraphNode dominator : treeOfDominators.keySet()) {
+			for(AbstractDirectedGraphNode postDominator : treeOfPostDominators.keySet()) {
+				
+				Set<AbstractDirectedGraphNode> dominatorsChildren = treeOfDominators.get(dominator);
+				dominatorsChildren.add(dominator);
+				Set<AbstractDirectedGraphNode> postDominatorsChildren = treeOfPostDominators.get(postDominator);
+				postDominatorsChildren.add(postDominator);
+				
+				if(dominatorsChildren.containsAll(postDominatorsChildren)
+						&& postDominatorsChildren.containsAll(dominatorsChildren)) {
+							subProcessBorders.put(dominator, postDominator);
+				}
+			}
+		}
+		return subProcessBorders;
+	}
+
+	/**
+	 * Determine a minimal dominator
+	 *
+	 * @param node
+	 * @param inversive - true for determining post-dominators
+	 * @return
+	 */
+	public AbstractDirectedGraphNode determineMinimalDominator
+	(AbstractDirectedGraphNode node, Set<AbstractDirectedGraphNode> concidredDominators, boolean inversive) {
+
+		Set<AbstractDirectedGraphNode> actualDominators = new HashSet<AbstractDirectedGraphNode>();
+		actualDominators.addAll(dominators.get(node));
+		actualDominators.retainAll(concidredDominators);
+		
+		AbstractDirectedGraphNode immediateDominator = null;
+		// Determine the immediate dominator 
+		if (actualDominators.size() > 0) {
+			 immediateDominator = actualDominators.iterator().next();
+		}
+		for(AbstractDirectedGraphNode dominator : actualDominators) {
+			if((inversive ? postDominators : dominators).get(dominator).contains(immediateDominator)) {
+				immediateDominator = dominator;
+			}
+		}
+		
+		return immediateDominator;
+	}
+	
 	
 	/**
 	 * Determine minimal common dominator
@@ -87,16 +169,17 @@ public class SubprocessDiscovery {
 		// Remone not common dominators
 		commonDominators.removeAll(dominatorsToRemove);
 		
-		// Determine the immediate dominator for the set of node
-		AbstractDirectedGraphNode immediateDominator = commonDominators.get(0);
+		// Determine the minimal dominator for the set of node
+		AbstractDirectedGraphNode minimalDominator = commonDominators.get(0);
 		for(AbstractDirectedGraphNode dominator : commonDominators) {
-			if((inversive ? postDominators : dominators).get(dominator).contains(immediateDominator)) {
-				immediateDominator = dominator;
+			if((inversive ? postDominators : dominators).get(dominator).contains(minimalDominator)) {
+				minimalDominator = dominator;
 			}
 		}
 		
-		return immediateDominator;
+		return minimalDominator;
 	}
+	
 	
 	public Set<ContainableDirectedGraphElement> determineSubprocessElements(
 			AbstractDirectedGraphNode subprocessStartNode, 
@@ -109,14 +192,6 @@ public class SubprocessDiscovery {
 		return subprocessNodes;
 	}
 	
-	/**
-	 * Identify subrocess contents with DFS-algorithm
-	 * 
-	 * @param subprocessStartNode
-	 * @param subprocessEndNode
-	 * @param processedElements
-	 * @return
-	 */
 	private Set<ContainableDirectedGraphElement> DFSForSubprocessDiscovery(
 			AbstractDirectedGraphNode startNode, 
 			AbstractDirectedGraphNode endNode, 
@@ -148,7 +223,7 @@ public class SubprocessDiscovery {
 	 * @param inversive - true for determining post-dominators
 	 * @return
 	 */
-	public Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> 
+	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> 
 	determineDominatorsForGraphNodes(boolean inversive) {
 
 		Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> mapToDominators =
@@ -161,8 +236,6 @@ public class SubprocessDiscovery {
 			for(AbstractDirectedGraphNode node : graph.getNodes()) {
 				Set<AbstractDirectedGraphNode> nodePredcessors 
 				= collectNodePredcessors(graph, node, inversive);
-				System.out.println("Node " + node);
-				System.out.println("Node predsessors" + nodePredcessors);
 				for(AbstractDirectedGraphNode predcessor : nodePredcessors) {
 					boolean elementsRemoved = intersectDominators(node, predcessor, mapToDominators);
 					// If some elements have been removed, calculating of dominators has not been finished
@@ -172,8 +245,31 @@ public class SubprocessDiscovery {
 				}
 			}
 		}
-		System.out.println(mapToDominators);
 		return mapToDominators;
+	}
+	
+	/**
+	 * Construct tree of (post)dominators out of a map of (post)dominators
+	 * @param map
+	 * @return
+	 */
+	private Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> 
+		constructTree(Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> map) {
+		Map<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>> resultMap = 
+				new HashMap<AbstractDirectedGraphNode, Set<AbstractDirectedGraphNode>>();
+		
+		for(AbstractDirectedGraphNode graphNode : map.keySet()) {
+			for(AbstractDirectedGraphNode domGraphNode: map.get(graphNode)) {
+				if(!resultMap.containsKey(domGraphNode)) {
+					resultMap.put(domGraphNode, new HashSet<AbstractDirectedGraphNode>());
+				}
+				Set<AbstractDirectedGraphNode> setOfChildren = resultMap.get(domGraphNode);
+				if(!graphNode.equals(domGraphNode)) {
+					setOfChildren.add(graphNode);
+				}
+			}
+		}
+		return resultMap;
 	}
 	
 	/**
