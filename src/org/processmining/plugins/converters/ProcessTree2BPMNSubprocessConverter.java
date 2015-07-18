@@ -488,7 +488,7 @@ public class ProcessTree2BPMNSubprocessConverter {
 	 * @return set of new edges
 	 */
 	private Collection<Edge> getNewEdges(Node oldNode, Node newNode, Collection<Edge> oldEdges) {
-		List<Edge> newEdges = new ArrayList<>();
+		List<Edge> newEdges = new ArrayList<Edge>();
 		// Add only edge where node is target
 		for (Edge edge : oldEdges) {
 			Edge newFlow = new EdgeImpl(edge.getSource(), newNode);
@@ -558,7 +558,7 @@ public class ProcessTree2BPMNSubprocessConverter {
 	 * @return
 	 */
 	private Collection<Flow> getOldFlows(BPMNNode node, Collection<Flow> flows) {
-		List<Flow> oldFlows = new ArrayList<>();
+		List<Flow> oldFlows = new ArrayList<Flow>();
 		for (Flow flow : flows) {
 			if (flow.getSource() == node) {
 				oldFlows.add(flow);
@@ -578,7 +578,7 @@ public class ProcessTree2BPMNSubprocessConverter {
 	 * @return set of created flows
 	 */
 	private Collection<Flow> getNewFlows(BPMNNode oldNode, BPMNNode newNode, Collection<Flow> flows) {
-		List<Flow> newFlows = new ArrayList<>();
+		List<Flow> newFlows = new ArrayList<Flow>();
 		for (Flow flow : flows) {
 			if (flow.getSource() == oldNode) {
 				Flow newFlow = new Flow(newNode, flow.getTarget(), flow.getLabel());
@@ -625,7 +625,7 @@ public class ProcessTree2BPMNSubprocessConverter {
 	@SuppressWarnings("unchecked")
 	private Map<NodeID, UUID> getIdMap(ProcessTree tree) {
 		Map<NodeID, UUID> idMap = (Map<NodeID, UUID>) pt2bpmn.convert(_context, tree)[1];
-		Map<NodeID, UUID> newIdMap = new HashMap<>();
+		Map<NodeID, UUID> newIdMap = new HashMap<NodeID, UUID>();
 		for (Map.Entry<Node, Node> entry : originalNodesMap.entrySet()) {
 			newIdMap.put(getFirstKeyByValue(idMap, entry.getValue().getID()), entry.getKey().getID());
 		}
