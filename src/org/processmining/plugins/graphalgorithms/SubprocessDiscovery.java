@@ -11,6 +11,7 @@ import java.util.Set;
 import org.processmining.models.graphbased.directed.AbstractDirectedGraphEdge;
 import org.processmining.models.graphbased.directed.AbstractDirectedGraphNode;
 import org.processmining.models.graphbased.directed.ContainableDirectedGraphElement;
+import org.processmining.models.graphbased.directed.ContainingDirectedGraphNode;
 import org.processmining.models.graphbased.directed.DirectedGraph;
 
 /**
@@ -172,7 +173,8 @@ public class SubprocessDiscovery {
 		// Determine the minimal dominator for the set of node
 		AbstractDirectedGraphNode minimalDominator = commonDominators.get(0);
 		for(AbstractDirectedGraphNode dominator : commonDominators) {
-			if((inversive ? postDominators : dominators).get(dominator).contains(minimalDominator)) {
+			if (((inversive ? postDominators : dominators).get(dominator).contains(minimalDominator)
+					|| innerNodes.contains(minimalDominator)) && (!innerNodes.contains(dominator))) {
 				minimalDominator = dominator;
 			}
 		}
@@ -233,7 +235,7 @@ public class SubprocessDiscovery {
 		boolean calculatingIsFinished = false;
 		while(!calculatingIsFinished) {			
 			calculatingIsFinished = true;
-			for(AbstractDirectedGraphNode node : graph.getNodes()) {
+			for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(graph, startNode)) {
 				Set<AbstractDirectedGraphNode> nodePredcessors 
 				= collectNodePredcessors(graph, node, inversive);
 				for(AbstractDirectedGraphNode predcessor : nodePredcessors) {
@@ -332,8 +334,29 @@ public class SubprocessDiscovery {
 		
 		return nodePredcessors;
 	}
-	
-	/**
+
+	/*
+	 * Retrieve all the nodes on tha same level as the start node
+	 */
+	@SuppressWarnings("unchecked")
+	private static Set<AbstractDirectedGraphNode> retrieveAllNodesOnTheLevel(DirectedGraph<? extends AbstractDirectedGraphNode,
+			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode startNode) {
+		
+		Set<AbstractDirectedGraphNode> resultSet = new HashSet<AbstractDirectedGraphNode>();
+		if(startNode instanceof ContainableDirectedGraphElement) {
+			ContainingDirectedGraphNode parent = ((ContainableDirectedGraphElement)startNode).getParent();
+			for(AbstractDirectedGraphNode node : directedGraph.getNodes()) {
+				if (node instanceof ContainableDirectedGraphElement) {
+					if(((ContainableDirectedGraphElement)node).getParent() == parent) {
+						resultSet.add(node);
+					}
+				}
+			}
+			return resultSet;
+		} 
+		return (Set<AbstractDirectedGraphNode>)directedGraph.getNodes();
+	}
+	/** 
 	 * Initialize map to dominators
 	 * 
 	 * @param mapToDominators
@@ -348,7 +371,7 @@ public class SubprocessDiscovery {
 		
 		// All nodes of the graph
 		final Set<AbstractDirectedGraphNode> ALL = 
-				new HashSet<AbstractDirectedGraphNode>(directedGraph.getNodes());
+				new HashSet<AbstractDirectedGraphNode>(retrieveAllNodesOnTheLevel(directedGraph, startNode));
 		
 		// Start graph node
 		final Set<AbstractDirectedGraphNode> START = 
@@ -356,7 +379,7 @@ public class SubprocessDiscovery {
 		
 		// Dominators should be initialized: initially we assume that every node in the graph
 		// (except source node) has all other graph nodes as dominators
-		for(AbstractDirectedGraphNode node : directedGraph.getNodes()) {
+		for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(directedGraph, startNode)) {
 			if(node.equals(startNode)) {
 				mapToDominators.put(node, START);
 			} else {
