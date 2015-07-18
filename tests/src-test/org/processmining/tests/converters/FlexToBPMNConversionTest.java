@@ -17,7 +17,7 @@ import org.processmining.models.flexiblemodel.FlexImpl;
 import org.processmining.models.flexiblemodel.FlexNode;
 import org.processmining.models.flexiblemodel.SetFlex;
 import org.processmining.models.flexiblemodel.StartTaskNodesSet;
-import org.processmining.plugins.converters.FlexToBPMNConversion;
+import org.processmining.plugins.converters.FlexToBPMNConversionPlugin;
 
 public class FlexToBPMNConversionTest {
 
@@ -103,7 +103,7 @@ public class FlexToBPMNConversionTest {
 
         when(mockedContext.getConnectionManager()).thenReturn(mockedManager);
 
-        new FlexToBPMNConversion().converter(mockedContext, causalNet);
+        new FlexToBPMNConversionPlugin().converter(mockedContext, causalNet);
     }
 
     @Test
@@ -171,7 +171,7 @@ public class FlexToBPMNConversionTest {
 
         when(mockedContext.getConnectionManager()).thenReturn(mockedManager);
 
-        new FlexToBPMNConversion().converter(mockedContext, causalNet);
+        new FlexToBPMNConversionPlugin().converter(mockedContext, causalNet);
     }
 
     @Test
@@ -232,7 +232,7 @@ public class FlexToBPMNConversionTest {
 
         when(mockedContext.getConnectionManager()).thenReturn(mockedManager);
 
-        new FlexToBPMNConversion().converter(mockedContext, causalNet);
+        new FlexToBPMNConversionPlugin().converter(mockedContext, causalNet);
 
     }
 
