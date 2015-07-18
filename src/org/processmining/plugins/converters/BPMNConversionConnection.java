@@ -12,6 +12,7 @@ import org.processmining.processtree.ProcessTree;
 public class BPMNConversionConnection extends AbstractConnection {
 	
 	public static String BPMN_DIAGRAM = "BPMN Diagram";
+	public static String BPMN_DIAGRAM_WITH_SUBPROCESSES = "BPMN Diagram with Subprocesses";
 	public static String PETRI_NET = "Petri net";
 	public static String DATA_PETRI_NET = "Data Petri net";
 	public static String PROCESS_TREE = "Process tree";
@@ -30,6 +31,24 @@ public class BPMNConversionConnection extends AbstractConnection {
 		this(label, bpmnDiagram, conversionMap);
 
         if (petriNet == null) throw new IllegalArgumentException("'petriNet' is null");
+		put(PETRI_NET, petriNet);
+	}
+    
+	public BPMNConversionConnection(String label, BPMNDiagram bpmnDiagram, PetrinetGraph petriNet,
+			Map<String, Activity> conversionMap, boolean withSubProc) {
+
+		super(label);
+
+		if (bpmnDiagram == null)
+			throw new IllegalArgumentException("'bpmnDiagram' is null");
+		if (withSubProc) {
+			put(BPMN_DIAGRAM_WITH_SUBPROCESSES, bpmnDiagram);
+		} else {
+			put(BPMN_DIAGRAM, bpmnDiagram);
+		}
+		put(CONVERSION_MAP, conversionMap);
+		if (petriNet == null)
+			throw new IllegalArgumentException("'petriNet' is null");
 		put(PETRI_NET, petriNet);
 	}
 	

@@ -215,7 +215,7 @@ public class BPMNUtils {
 	}
 
     private static Flow addFlow(BPMNDiagram diagram, BPMNNode source, BPMNNode target) {
-        for (Flow flow : diagram.getFlows())
+        for (BPMNEdge flow : diagram.getEdges())
             if (source == flow.getSource() && target == flow.getTarget()) return null;
         return diagram.addFlow(source, target, "");
     }

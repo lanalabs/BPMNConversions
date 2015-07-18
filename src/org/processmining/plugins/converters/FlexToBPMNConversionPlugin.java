@@ -18,7 +18,7 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 
 @Plugin(name = "Convert C-Net to BPMN", parameterLabels = {"Causal Net"}, returnLabels = {"BPMN Diagram"},
         returnTypes = {BPMNDiagram.class}, userAccessible = true, help = "Converts C-Net to BPMN")
-public class FlexToBPMNConversion {
+public class FlexToBPMNConversionPlugin {
 
     //private static Map<String, Flow> flowMap = new HashMap<String, Flow>();
     @UITopiaVariant(affiliation = "HSE", author = "Nikita Gundobin", email = "nikita.gundobin@gmail.com")

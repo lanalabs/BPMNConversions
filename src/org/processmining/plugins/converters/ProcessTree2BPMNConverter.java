@@ -40,7 +40,7 @@ import org.processmining.processtree.Task.Manual;
  * Oct 01, 2013
  */
 @Plugin(name = "Convert Process tree to BPMN diagram", parameterLabels = { "Process tree", "Simplify"}, 
-returnLabels = { "BPMN Diagram,", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, 
+returnLabels = { "BPMN Diagram ", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, 
 userAccessible = true, help = "Converts Process tree to BPMN diagram")
 public class ProcessTree2BPMNConverter {
 	
@@ -249,8 +249,7 @@ public class ProcessTree2BPMNConverter {
 		
 			// Add new task
 			String label = BPMNUtils.EMPTY;
-			if (taskNode.getName() != null && !taskNode.getName().isEmpty() 
-					&& !(taskNode instanceof Task.Automatic)) {
+			if (taskNode.getName() != null && !taskNode.getName().isEmpty() && !taskNode.getName().equals("tau")) {
 				label = taskNode.getName();
 			}
 			Activity task = bpmnDiagram.addActivity(label, false, false, false, false, false);
@@ -357,7 +356,7 @@ public class ProcessTree2BPMNConverter {
 	 * @param tree
 	 * @param bpmnDiagram
 	 */
-	private void expandSequence( Activity activity, Block blockNode, ProcessTree tree, BPMNDiagram bpmnDiagram) {
+	private void expandSequence(Activity activity, Block blockNode, ProcessTree tree, BPMNDiagram bpmnDiagram) {
 		
 		// Delete activity and corresponding incoming and outgoing flows
 		BPMNNode source = deleteIncomingFlow(activity, bpmnDiagram);
