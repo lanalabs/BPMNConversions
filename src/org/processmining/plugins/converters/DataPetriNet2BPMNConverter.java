@@ -64,9 +64,8 @@ public class DataPetriNet2BPMNConverter {
 		
 		try {
 			// Convert Petri net to a BPMN diagram
-			bpmnDiagram = context.tryToFindOrConstructFirstObject(BPMNDiagram.class, 
-					BPMNConversionConnection.class, BPMNConversionConnection.BPMN_DIAGRAM,
-					clonePetrinet);
+			bpmnDiagram = context.tryToFindOrConstructFirstNamedObject(BPMNDiagram.class, 
+					"Convert Petri net to BPMN diagram", null, null, clonePetrinet);
 			// Retrieve conversion map
 			conversionMap = context.tryToFindOrConstructFirstObject(Map.class, 
 					BPMNConversionConnection.class, BPMNConversionConnection.CONVERSION_MAP,
