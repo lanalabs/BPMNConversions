@@ -13,6 +13,9 @@ import org.processmining.models.graphbased.directed.AbstractDirectedGraphNode;
 import org.processmining.models.graphbased.directed.ContainableDirectedGraphElement;
 import org.processmining.models.graphbased.directed.ContainingDirectedGraphNode;
 import org.processmining.models.graphbased.directed.DirectedGraph;
+import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
+import org.processmining.models.graphbased.directed.bpmn.elements.DataAssociation;
+import org.processmining.models.graphbased.directed.bpmn.elements.Swimlane;
 
 /**
  * Discovering dominators, post-dominators and enclosing subprocess for graph nodes
@@ -28,6 +31,11 @@ public class SubprocessDiscovery {
 	 */
 	private DirectedGraph<? extends AbstractDirectedGraphNode, 
 			? extends AbstractDirectedGraphEdge<?,?>> graph;
+	
+	/**
+	 * Parent element
+	 */
+	ContainingDirectedGraphNode parentElement;
 	
 	/**
 	 * Start node of the graph
@@ -83,8 +91,10 @@ public class SubprocessDiscovery {
 	
 	public SubprocessDiscovery(DirectedGraph<? extends AbstractDirectedGraphNode, 
 			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode startNode,
-			AbstractDirectedGraphNode endNode) {
+			AbstractDirectedGraphNode endNode, ContainingDirectedGraphNode parentElement) {
 		
+		System.out.println("Parent element " + parentElement);
+		this.parentElement = parentElement;
 		this.graph = directedGraph;
 		this.startNode = startNode;
 		this.endNode = endNode;
@@ -93,6 +103,14 @@ public class SubprocessDiscovery {
 		this.treeOfDominators = constructTree(dominators);
 		this.treeOfPostDominators = constructTree(postDominators);
 		this.subProcessBorders = constrctSubProcBorders();
+
+	}
+	
+	public SubprocessDiscovery(DirectedGraph<? extends AbstractDirectedGraphNode, 
+			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode startNode,
+			AbstractDirectedGraphNode endNode) {
+		
+		this(directedGraph, startNode, endNode, null);
 	}
 	
 	private Map<AbstractDirectedGraphNode, AbstractDirectedGraphNode> constrctSubProcBorders() {
@@ -204,12 +222,14 @@ public class SubprocessDiscovery {
 		resultSet.add((ContainableDirectedGraphElement)startNode);
 		if(!startNode.equals(endNode)) {
 			for (AbstractDirectedGraphEdge<?,?> outEdge : graph.getOutEdges(startNode)) {
-				// TODO: Excplicit type cast!
-				resultSet.add((ContainableDirectedGraphElement) outEdge);
-				AbstractDirectedGraphNode nextNode = outEdge.getTarget();
-				if (!processedElements.contains(nextNode)) {
-					processedElements.add((ContainableDirectedGraphElement) nextNode);
-					resultSet.addAll(DFSForSubprocessDiscovery(nextNode, endNode, processedElements));
+				if (!(outEdge instanceof DataAssociation)){
+					// TODO: Excplicit type cast!
+					resultSet.add((ContainableDirectedGraphElement) outEdge);
+					AbstractDirectedGraphNode nextNode = outEdge.getTarget();
+					if (!processedElements.contains(nextNode)) {
+						processedElements.add((ContainableDirectedGraphElement) nextNode);
+						resultSet.addAll(DFSForSubprocessDiscovery(nextNode, endNode, processedElements));
+					}
 				}
 			}
 		}
@@ -235,10 +255,12 @@ public class SubprocessDiscovery {
 		boolean calculatingIsFinished = false;
 		while(!calculatingIsFinished) {			
 			calculatingIsFinished = true;
-			for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(graph, startNode)) {
+			for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(graph)) {
 				Set<AbstractDirectedGraphNode> nodePredcessors 
 				= collectNodePredcessors(graph, node, inversive);
 				for(AbstractDirectedGraphNode predcessor : nodePredcessors) {
+//					System.out.println("Node " + node);
+//					System.out.println("Node predcessor " + predcessor);
 					boolean elementsRemoved = intersectDominators(node, predcessor, mapToDominators);
 					// If some elements have been removed, calculating of dominators has not been finished
 					if(elementsRemoved) {
@@ -282,13 +304,17 @@ public class SubprocessDiscovery {
 	 * @param mapToDominators
 	 * @return true if some elements have been removed
 	 */
-	private static boolean intersectDominators(AbstractDirectedGraphNode node, 
+	private boolean intersectDominators(AbstractDirectedGraphNode node, 
 			AbstractDirectedGraphNode predcessor, Map<AbstractDirectedGraphNode,
 			Set<AbstractDirectedGraphNode>> mapToDominators) {
 		
 		Set<AbstractDirectedGraphNode> nodeDominators = mapToDominators.get(node);
 		Set<AbstractDirectedGraphNode> predcessorDominators = mapToDominators.get(predcessor);
 
+		if(predcessorDominators == null) {
+			System.out.println(node);
+			System.out.println(predcessor);
+		}
 		boolean newSetOfDominators = false;
 		Set<AbstractDirectedGraphNode> elementsToPut = new HashSet<AbstractDirectedGraphNode>();
 		for (AbstractDirectedGraphNode nodeDominator : nodeDominators) {
@@ -312,7 +338,7 @@ public class SubprocessDiscovery {
 	 * @param startNode
 	 * @return
 	 */
-	private static Set<AbstractDirectedGraphNode> collectNodePredcessors
+	private Set<AbstractDirectedGraphNode> collectNodePredcessors
 		(DirectedGraph<? extends AbstractDirectedGraphNode, 
 			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode node,
 			boolean inversive) {
@@ -322,13 +348,17 @@ public class SubprocessDiscovery {
 			Collection<? extends AbstractDirectedGraphEdge<?,?>> inEdges = directedGraph.getInEdges(node);
 			for (AbstractDirectedGraphEdge<? extends AbstractDirectedGraphNode, 
 					? extends AbstractDirectedGraphNode> inEdge : inEdges) {
-				nodePredcessors.add(inEdge.getSource());
+				if (!(inEdge instanceof DataAssociation)) {
+					nodePredcessors.add(inEdge.getSource());
+				}
 			}
 		} else {
 			Collection<? extends AbstractDirectedGraphEdge<?,?>> outEdges = directedGraph.getOutEdges(node);
 			for (AbstractDirectedGraphEdge<? extends AbstractDirectedGraphNode, 
 					? extends AbstractDirectedGraphNode> outEdge : outEdges) {
-				nodePredcessors.add(outEdge.getTarget());
+				if (!(outEdge instanceof DataAssociation)) {
+					nodePredcessors.add(outEdge.getTarget());
+				}
 			}
 		}
 		
@@ -339,22 +369,29 @@ public class SubprocessDiscovery {
 	 * Retrieve all the nodes on tha same level as the start node
 	 */
 	@SuppressWarnings("unchecked")
-	private static Set<AbstractDirectedGraphNode> retrieveAllNodesOnTheLevel(DirectedGraph<? extends AbstractDirectedGraphNode,
-			? extends AbstractDirectedGraphEdge<?,?>> directedGraph, AbstractDirectedGraphNode startNode) {
-		
+	private Set<AbstractDirectedGraphNode> retrieveAllNodesOnTheLevel(
+			DirectedGraph<? extends AbstractDirectedGraphNode, ? extends AbstractDirectedGraphEdge<?, ?>> directedGraph) {
+
 		Set<AbstractDirectedGraphNode> resultSet = new HashSet<AbstractDirectedGraphNode>();
-		if(startNode instanceof ContainableDirectedGraphElement) {
-			ContainingDirectedGraphNode parent = ((ContainableDirectedGraphElement)startNode).getParent();
-			for(AbstractDirectedGraphNode node : directedGraph.getNodes()) {
-				if (node instanceof ContainableDirectedGraphElement) {
-					if(((ContainableDirectedGraphElement)node).getParent() == parent) {
+
+		for (AbstractDirectedGraphNode node : directedGraph.getNodes()) {
+			if (node instanceof ContainableDirectedGraphElement) {
+				// TODO: Make something more general
+				if (node instanceof BPMNNode) {
+					if (((BPMNNode) node).getParentSubProcess() == parentElement && !(node instanceof Swimlane)) {
 						resultSet.add(node);
 					}
+				} else if (node instanceof ContainableDirectedGraphElement) {
+					if (((ContainableDirectedGraphElement) node).getParent() == parentElement) {
+						resultSet.add(node);
+					}
+
+				} else {
+					resultSet.add(node);
 				}
 			}
-			return resultSet;
-		} 
-		return (Set<AbstractDirectedGraphNode>)directedGraph.getNodes();
+		}
+		return resultSet;
 	}
 	/** 
 	 * Initialize map to dominators
@@ -363,7 +400,7 @@ public class SubprocessDiscovery {
 	 * @param directedGraph
 	 * @param startNode
 	 */
-	private static void initMapToDominators(Map<AbstractDirectedGraphNode, 
+	private void initMapToDominators(Map<AbstractDirectedGraphNode, 
 			Set<AbstractDirectedGraphNode>> mapToDominators, 
 			DirectedGraph<? extends AbstractDirectedGraphNode,
 					? extends AbstractDirectedGraphEdge<?,?>> directedGraph, 
@@ -371,7 +408,7 @@ public class SubprocessDiscovery {
 		
 		// All nodes of the graph
 		final Set<AbstractDirectedGraphNode> ALL = 
-				new HashSet<AbstractDirectedGraphNode>(retrieveAllNodesOnTheLevel(directedGraph, startNode));
+				new HashSet<AbstractDirectedGraphNode>(retrieveAllNodesOnTheLevel(directedGraph));
 		
 		// Start graph node
 		final Set<AbstractDirectedGraphNode> START = 
@@ -379,7 +416,7 @@ public class SubprocessDiscovery {
 		
 		// Dominators should be initialized: initially we assume that every node in the graph
 		// (except source node) has all other graph nodes as dominators
-		for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(directedGraph, startNode)) {
+		for(AbstractDirectedGraphNode node : retrieveAllNodesOnTheLevel(directedGraph)) {
 			if(node.equals(startNode)) {
 				mapToDominators.put(node, START);
 			} else {
