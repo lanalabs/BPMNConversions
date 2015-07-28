@@ -191,8 +191,7 @@ public class SubprocessDiscovery {
 		// Determine the minimal dominator for the set of node
 		AbstractDirectedGraphNode minimalDominator = commonDominators.get(0);
 		for(AbstractDirectedGraphNode dominator : commonDominators) {
-			if (((inversive ? postDominators : dominators).get(dominator).contains(minimalDominator)
-					|| innerNodes.contains(minimalDominator)) && (!innerNodes.contains(dominator))) {
+			if (((inversive ? postDominators : dominators).get(dominator).contains(minimalDominator))) {
 				minimalDominator = dominator;
 			}
 		}
@@ -259,8 +258,6 @@ public class SubprocessDiscovery {
 				Set<AbstractDirectedGraphNode> nodePredcessors 
 				= collectNodePredcessors(graph, node, inversive);
 				for(AbstractDirectedGraphNode predcessor : nodePredcessors) {
-//					System.out.println("Node " + node);
-//					System.out.println("Node predcessor " + predcessor);
 					boolean elementsRemoved = intersectDominators(node, predcessor, mapToDominators);
 					// If some elements have been removed, calculating of dominators has not been finished
 					if(elementsRemoved) {
