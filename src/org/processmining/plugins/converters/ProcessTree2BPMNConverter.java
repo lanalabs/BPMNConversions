@@ -1,12 +1,14 @@
 package org.processmining.plugins.converters;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
+import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
@@ -19,11 +21,13 @@ import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventUse;
+import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway.GatewayType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Swimlane;
 import org.processmining.models.graphbased.directed.bpmn.elements.SwimlaneType;
 import org.processmining.processtree.Block;
+import org.processmining.processtree.Block.Seq;
 import org.processmining.processtree.Event;
 import org.processmining.processtree.Event.Message;
 import org.processmining.processtree.Event.TimeOut;
@@ -54,17 +58,17 @@ public class ProcessTree2BPMNConverter {
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Process tree to BPMN and simplify", requiredParameterLabels = { 0 })
-	public Object[] convert(UIPluginContext context, ProcessTree tree) {	
+	public Object[] convert(PluginContext context, ProcessTree tree) {	
 		return convertToBPMN(context, tree, true);
 	}
 	
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Process tree to BPMN", requiredParameterLabels = { 0, 1 })
-	public Object[] convert(UIPluginContext context, ProcessTree tree, boolean simplify) {	
+	public Object[] convert(PluginContext context, ProcessTree tree, boolean simplify) {	
 		return convertToBPMN(context, tree, simplify);
 	}
 	
-	private Object[] convertToBPMN(UIPluginContext context, ProcessTree tree, boolean simplify) {
+	private Object[] convertToBPMN(PluginContext context, ProcessTree tree, boolean simplify) {
 		
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Process tree To BPMN diagram");
@@ -86,6 +90,10 @@ public class ProcessTree2BPMNConverter {
 		progress.setCaption("Getting BPMN Visualization");
 		
 		Map<NodeID, UUID> idMap = retrieveIdMap();
+		
+		// now do some sorting
+		sortSequenceFlows(bpmnDiagram, tree);
+		
 		return new Object[] {bpmnDiagram, idMap};
 	}
 	
@@ -141,6 +149,20 @@ public class ProcessTree2BPMNConverter {
 		
 		conversionMap.put(rootActivity, tree.getRoot());
 		expandNodes(tree, bpmnDiagram);
+		// now set the default flows
+		for(Gateway gate: bpmnDiagram.getGateways()){
+			for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge: bpmnDiagram.getEdges()){
+				if(edge.getSource().equals(gate)){
+					Node block = conversionMap.get(gate);
+					// it has to be a block
+					Node child = conversionMap.get(edge.getTarget());
+					if(block instanceof Block && ((Block)block).getChildren().get(((Block)block).getChildren().size() - 1).equals(child)){
+						// we have the right child
+						gate.setDefaultFlow(edge);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -172,11 +194,15 @@ public class ProcessTree2BPMNConverter {
 	 */
 	private Activity takeFirstInternalActivity() {
 		Activity activity = null;
+		UUID lowestActID = null;
 		if (!conversionMap.isEmpty()) {
 			for (BPMNNode bpmnNode : conversionMap.keySet()) {
 				if(bpmnNode instanceof Activity) {
 					if(PROCESS_TREE_INTERNAL_NODE.equals(bpmnNode.getLabel())) {
-						activity = (Activity)bpmnNode;
+						if(lowestActID == null || (lowestActID != null && conversionMap.get(bpmnNode).getID().compareTo(lowestActID) < 0)){
+							activity = (Activity)bpmnNode;
+						}
+						lowestActID = lowestActID == null ? conversionMap.get(bpmnNode).getID() : conversionMap.get(bpmnNode).getID().compareTo(lowestActID) < 0 ? conversionMap.get(bpmnNode).getID() : lowestActID;
 					}
 				}
 			}
@@ -514,6 +540,63 @@ public class ProcessTree2BPMNConverter {
 		}
 		
 		return target;
+	}
+	
+	private void sortSequenceFlows(BPMNDiagram diagram, ProcessTree tree){
+		for(Gateway gate: diagram.getGateways()){
+			// check if choice construct
+			Node operator = conversionMap.get(gate);
+			if(operator != null && operator instanceof Block){
+				sortEdges(diagram, tree, gate, (Block) operator);
+			}
+		}
+	}
+	
+	private void sortEdges(BPMNDiagram diagram, ProcessTree tree, Gateway gate, Block parent){
+		List<Node> children = new ArrayList<Node>();
+		for(int i = 0; i < parent.getChildren().size(); i++){
+			children.add(getChild(parent, i));
+		}
+		Collection<Flow> sequenceFlows = new ArrayList<>(diagram.getFlows());
+		// get all the sequence flows related to this gateway
+		Collection<Flow> gateSequenceFlows = new ArrayList<>();
+		for(Flow f: sequenceFlows){
+			if(f.getSource().equals(gate)){
+				gateSequenceFlows.add(f);
+			}
+		}
+		sequenceFlows.removeAll(gateSequenceFlows);
+		// now do the sorting
+		Collection<Flow> sortedGateSequenceFlows = new ArrayList<>();
+		for(Node child: children){
+			for(Flow f: gateSequenceFlows){				
+				if(conversionMap.get(f.getTarget()) != null && conversionMap.get(f.getTarget()).equals(child)){
+					sortedGateSequenceFlows.add(f);
+				}
+			}
+		}
+		// now add them back
+		sequenceFlows.addAll(sortedGateSequenceFlows);
+		// now update the flows of the diagram
+		for(Flow f: sequenceFlows){
+			diagram.removeEdge(f);
+		}
+		for(Flow f: sequenceFlows){
+			diagram.addFlow(f.getSource(), f.getTarget(), f.getLabel());
+		}
+		
+		
+	}
+	
+	private Node getChild(Block parent, int index){
+		Node child = parent.getChildren().get(index);
+		if(child instanceof Seq){
+			// we have to go further since BPMN does not have sequences
+			return getChild((Seq)child, 0);
+		}
+		else{
+			return child;
+		}
 	}
 }
 
