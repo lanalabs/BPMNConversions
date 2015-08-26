@@ -36,6 +36,27 @@ public class BPMNUtils {
         removeSilentActivities(conversionMap, diagram);
         reduceGateways(diagram);
 		mergeActivitiesAndGateways(diagram);
+		removeSuperfluousGateways(diagram);
+	}
+	
+	/**
+	 * Remove superfluous gateways
+	 * 
+	 * @param diagram
+	 */
+	private static void removeSuperfluousGateways(BPMNDiagram diagram) {
+		Set<Gateway> gatewaysToRemove = new HashSet<Gateway>();
+		for (Gateway gateway : diagram.getGateways()) {
+			if ((diagram.getInEdges(gateway).size() == 1) && (diagram.getOutEdges(gateway).size() == 1)) {
+				BPMNNode inNode = diagram.getInEdges(gateway).iterator().next().getSource();
+				BPMNNode outNode = diagram.getOutEdges(gateway).iterator().next().getTarget();
+				gatewaysToRemove.add(gateway);
+				diagram.addFlow(inNode, outNode, "");
+			}
+		}
+		for (Gateway gateway : gatewaysToRemove) {
+			diagram.removeGateway(gateway);
+		}
 	}
 	
 	/**

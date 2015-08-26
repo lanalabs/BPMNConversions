@@ -92,7 +92,7 @@ public class PetriNetToBPMNConverterPlugin {
 
 		// Handle transitions without incoming sequence flows
 		handleTransitionsWithoutIncomingFlows(clonePetrinet);
-
+		
 		// Remove places without incoming sequence flows
 		removeDeadPlaces(clonePetrinet);
 
@@ -237,10 +237,10 @@ public class PetriNetToBPMNConverterPlugin {
 					}
 				}
 			}
+			for(Place place : toRemove) {
+				petriNet.removePlace(place);
+			}
 		} while (hasDeadPlaces);
-		for(Place place : toRemove) {
-			petriNet.removePlace(place);
-		}
 	}
 
     /**
@@ -256,6 +256,10 @@ public class PetriNetToBPMNConverterPlugin {
 			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager().getFirstConnection(
 					InitialMarkingConnection.class, context, petrinetGraph);
 			marking = initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
+			if ((marking != null) && (marking.size() == 0)) {
+				Place sourcePlace = retrieveSourcePlace(petrinetGraph);
+				marking.add(sourcePlace);
+			}
 		} catch (ConnectionCannotBeObtained e) {
 			Place sourcePlace = retrieveSourcePlace(petrinetGraph);
 			marking.add(sourcePlace);
