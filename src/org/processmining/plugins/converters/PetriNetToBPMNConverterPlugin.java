@@ -6,10 +6,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-
-import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
 import org.processmining.framework.connections.ConnectionCannotBeObtained;
 import org.processmining.framework.connections.ConnectionManager;
@@ -58,7 +54,7 @@ public class PetriNetToBPMNConverterPlugin {
 	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Petri net to BPMN", requiredParameterLabels = { 0 })
-	public Object[] convert(UIPluginContext context, PetrinetGraph petrinetGraph) {
+	public Object[] convert(PluginContext context, PetrinetGraph petrinetGraph) {
 
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Petri net To BPMN diagram");
@@ -81,9 +77,9 @@ public class PetriNetToBPMNConverterPlugin {
 			String nonFreeChoiceMessage = "Initial Petri net is not a free-choice net and "
 					+ "will be converted to resembling free-choice Petri net";
 			context.log(nonFreeChoiceMessage);
-			JPanel warningPanel = new JPanel();
-			warningPanel.add(new JLabel(nonFreeChoiceMessage));
-			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
+//			JPanel warningPanel = new JPanel();
+//			warningPanel.add(new JLabel(nonFreeChoiceMessage));
+//			context.showWizard("Petri net to BPMN conversion", true, true, warningPanel);
 			convertToResemblingFreeChoice(clonePetrinet);
 		}
 
@@ -250,7 +246,7 @@ public class PetriNetToBPMNConverterPlugin {
 	 * @param petrinetGraph
 	 * @return
 	 */
-	private Marking retrieveMarking(UIPluginContext context, PetrinetGraph petrinetGraph) {
+	private Marking retrieveMarking(PluginContext context, PetrinetGraph petrinetGraph) {
 		Marking marking = new Marking();
 		try {
 			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager().getFirstConnection(
