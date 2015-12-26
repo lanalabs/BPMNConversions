@@ -366,7 +366,7 @@ public class ResetArcs2BPMNConverter {
 		try {
 				conversionMap = context.tryToFindOrConstructFirstObject(Map.class, 
 						BPMNConversionConnection.class, 
-						BPMNConversionConnection.CONVERSION_MAP, bpmnDiagram);
+						BPMNConversionConnection.TRANSITION_CONVERSION_MAP, bpmnDiagram);
 			} catch (ConnectionCannotBeObtained e) {
 				String connectionCannotBeObtaintMessage = "Connection to Conversion map cannot be obtaint";
 				context.getFutureResult(0).cancel(true);

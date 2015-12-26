@@ -22,6 +22,7 @@ import org.processmining.models.graphbased.directed.bpmn.elements.Event;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventUse;
+import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
@@ -45,7 +46,7 @@ import org.processmining.plugins.graphalgorithms.DFS;
  * Jul 18, 2013
  */
 @Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, returnLabels = {
-		"BPMN Diagram, ", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, userAccessible = true, help = "Converts Petri net to BPMN diagram")
+		"BPMN Diagram ", "Transition Conversion map", "Place Conversion Map" }, returnTypes = { BPMNDiagram.class, Map.class, Map.class }, userAccessible = true, help = "Converts Petri net to BPMN diagram")
 public class PetriNetToBPMNConverterPlugin {
 
     private Place initialPlace;
@@ -65,7 +66,8 @@ public class PetriNetToBPMNConverterPlugin {
 		Object[] cloneResult = cloneToPetrinet(petrinetGraph, initialMarking);
 		PetrinetGraph clonePetrinet = (PetrinetGraph) cloneResult[0];
 		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>) cloneResult[1];
-		Marking cloneMarking = (Marking) cloneResult[2];
+		Map<Place, Place> placesMap = (Map<Place, Place>) cloneResult[2];
+		Marking cloneMarking = (Marking) cloneResult[3];
 
 		// Check whether Petri net without reset arcs is a free-choice net
 		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(clonePetrinet);
@@ -95,10 +97,11 @@ public class PetriNetToBPMNConverterPlugin {
 		// Convert Petri net to a BPMN diagram
         PetriNetToBPMNConverter converter = new PetriNetToBPMNConverter(clonePetrinet, initialPlace);
         BPMNDiagram bpmnDiagram = converter.convert();
-		Map<String, Activity> conversionMap = converter.getConversionMap();
-
+		Map<String, Activity> transitionConversionMap = converter.getTransitionConversionMap();
+		Map<Place, Flow> placeConversionMap = converter.getPlaceConversionMap();
+		
 		// Simplify BPMN diagram
-		BPMNUtils.simplifyBPMNDiagram(conversionMap, bpmnDiagram);
+		BPMNUtils.simplifyBPMNDiagram(transitionConversionMap, bpmnDiagram);
 		
 		// Handle activities without outgoing sequence flows
 		handleActivitiesWithoutOutgoingFlows(bpmnDiagram);
@@ -106,8 +109,9 @@ public class PetriNetToBPMNConverterPlugin {
 		//Add end event
 		//addEndEvent(bpmnDiagram);
 
-		// Rebuild conversion map to restore connections with the initial Petri net 
-		conversionMap = rebuildConversionMap(conversionMap, transitionsMap);
+		// Rebuild conversion maps to restore connections with the initial Petri net 
+		transitionConversionMap = rebuildTransitionConversionMap(transitionConversionMap, transitionsMap);
+		placeConversionMap = rebuildPlaceConversionMap(placeConversionMap, placesMap);
 
 		progress.setCaption("Getting BPMN Visualization");
 
@@ -115,9 +119,9 @@ public class PetriNetToBPMNConverterPlugin {
 		ConnectionManager connectionManager = context.getConnectionManager();
 		connectionManager.addConnection(new BPMNConversionConnection("Connection between " + "BPMN model"
 				+ bpmnDiagram.getLabel() + ", Petri net" + petrinetGraph.getLabel(), bpmnDiagram, petrinetGraph,
-				conversionMap));
+				transitionConversionMap, placeConversionMap));
 		
-		return new Object[] { bpmnDiagram, conversionMap };
+		return new Object[] { bpmnDiagram, transitionConversionMap, placeConversionMap };
 	}
 
 	/**
@@ -280,12 +284,29 @@ public class PetriNetToBPMNConverterPlugin {
 	 * @param transitionsMap
 	 * @return
 	 */
-	private Map<String, Activity> rebuildConversionMap(Map<String, Activity> conversionMap,
+	private Map<String, Activity> rebuildTransitionConversionMap(Map<String, Activity> conversionMap,
 			Map<Transition, Transition> transitionsMap) {
 		Map<String, Activity> newConversionMap = new HashMap<String, Activity>();
 		for (Transition transition : transitionsMap.keySet()) {
 			newConversionMap.put(transition.getId().toString(),
 					conversionMap.get(transitionsMap.get(transition).getId().toString()));
+		}
+		return newConversionMap;
+	}
+	
+	/**
+	 * Rebuilding place conversion map to restore connections with the initial Petri
+	 * net
+	 * 
+	 * @param conversionMap
+	 * @param placesMap
+	 * @return
+	 */
+	private Map<Place, Flow> rebuildPlaceConversionMap(Map<Place, Flow> conversionMap,
+			Map<Place, Place> placesMap) {
+		Map<Place, Flow> newConversionMap = new HashMap<Place, Flow>();
+		for (Place place : placesMap.keySet()) {
+			newConversionMap.put(place, conversionMap.get(placesMap.get(place)));
 		}
 		return newConversionMap;
 	}
@@ -542,6 +563,6 @@ public class PetriNetToBPMNConverterPlugin {
 			}
 		}
 
-		return new Object[] { clonePetriNet, transitionsMap, newMarking };
+		return new Object[] { clonePetriNet, transitionsMap, placesMap, newMarking };
 	}
 }

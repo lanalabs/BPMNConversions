@@ -40,18 +40,19 @@ import org.processmining.models.semantics.petrinet.Marking;
  * Dec 12, 2013
  */
 @Plugin(name = "Convert Data Petri net to BPMN diagram", parameterLabels = { "Data Petri net" }, 
-returnLabels = { "BPMN Diagram"}, returnTypes = { BPMNDiagram.class}, 
+returnLabels = { "BPMN Diagram", "Conversion map"}, returnTypes = { BPMNDiagram.class, Map.class}, 
 userAccessible = true, help = "Converts Data Petri net to BPMN diagram")
 public class DataPetriNet2BPMNConverter {
 	
-	protected Map<String, Activity> conversionMap = null;
+	protected Map<String, Activity> transitionConversionMap = null;
+	protected Map<Place, Flow> placeConversionMap = null;
 	protected Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 	protected Map<String, DataObject> dataObjectsMap = new HashMap<String, DataObject>();
 	
 	@SuppressWarnings("unchecked")
 	@UITopiaVariant(affiliation = "HSE", author = "A. Kalenkova", email = "akalenkova@hse.ru")
 	@PluginVariant(variantLabel = "Convert Data Petri net to BPMN", requiredParameterLabels = { 0 })
-	public BPMNDiagram convert(UIPluginContext context, DataPetriNet dataPetriNet) {
+	public Object[] convert(UIPluginContext context, DataPetriNet dataPetriNet) {
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Data Petri net To BPMN diagram");
 				
@@ -66,9 +67,12 @@ public class DataPetriNet2BPMNConverter {
 			// Convert Petri net to a BPMN diagram
 			bpmnDiagram = context.tryToFindOrConstructFirstNamedObject(BPMNDiagram.class, 
 					"Convert Petri net to BPMN diagram", null, null, clonePetrinet);
-			// Retrieve conversion map
-			conversionMap = context.tryToFindOrConstructFirstObject(Map.class, 
-					BPMNConversionConnection.class, BPMNConversionConnection.CONVERSION_MAP,
+			// Retrieve conversion maps
+			transitionConversionMap = context.tryToFindOrConstructFirstObject(Map.class, 
+					BPMNConversionConnection.class, BPMNConversionConnection.TRANSITION_CONVERSION_MAP,
+					bpmnDiagram);
+			placeConversionMap = context.tryToFindOrConstructFirstObject(Map.class, 
+					BPMNConversionConnection.class, BPMNConversionConnection.PLACE_CONVERSION_MAP,
 					bpmnDiagram);
 			
 		} catch (ConnectionCannotBeObtained e) {
@@ -80,13 +84,13 @@ public class DataPetriNet2BPMNConverter {
 		addDataObjects(dataPetriNet, dataObjectsMap, bpmnDiagram);
 
 		// Add data associations
-		addDataAssociations(dataPetriNet, dataObjectsMap, transitionsMap, conversionMap, bpmnDiagram);
+		addDataAssociations(dataPetriNet, dataObjectsMap, transitionsMap, transitionConversionMap, bpmnDiagram);
 		
 		// Add guards to BPMN diagram
-		addGuards(dataPetriNet, dataObjectsMap, transitionsMap, conversionMap, bpmnDiagram);
+		addGuards(dataPetriNet, dataObjectsMap, transitionsMap, transitionConversionMap, bpmnDiagram);
 		
 		//Remove invisible transitions
-		removeInvisibleTransitions(dataPetriNet, transitionsMap, conversionMap, bpmnDiagram);
+		removeInvisibleTransitions(dataPetriNet, transitionsMap, transitionConversionMap, bpmnDiagram);
 		
 		progress.setCaption("Getting BPMN Visualization");
 		
@@ -96,15 +100,15 @@ public class DataPetriNet2BPMNConverter {
 				+ "BPMN model" + bpmnDiagram.getLabel()
 				+ ", Petri net" + clonePetrinet.getLabel()
 				+ ", Data Petri net" + dataPetriNet.getLabel(),
-				bpmnDiagram, clonePetrinet, dataPetriNet, conversionMap));
+				bpmnDiagram, clonePetrinet, dataPetriNet, transitionConversionMap, placeConversionMap));
 		
-		return bpmnDiagram;
+		return new Object[] {bpmnDiagram, transitionConversionMap};
 	}
 	
 	/**
 	 * Adding data objects to BPMN diagram
 	 * @param dataPetriNet
-	 * @param conversionMap
+	 * @param transitionConversionMap
 	 * @param bpmnDiagram
 	 */
 	private void addDataObjects(DataPetriNet dataPetriNet, Map<String, DataObject> dataObjectsMap, 

@@ -30,6 +30,7 @@ import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway.GatewayType;
 import org.processmining.models.graphbased.directed.bpmn.elements.SubProcess;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.plugins.graphalgorithms.SubprocessDiscovery;
 
 /**
@@ -44,7 +45,8 @@ import org.processmining.plugins.graphalgorithms.SubprocessDiscovery;
 
 public class PetriNetToBPMNWithSubProcConverterPlugin {
 	
-	protected Map<String, Activity> conversionMap = null;
+	protected Map<String, Activity> transitionConversionMap = null;
+	protected Map<Place, Flow> placeConversionMap = null;
 	protected Map<AbstractDirectedGraphNode, SubProcess> subprocesses = new HashMap<AbstractDirectedGraphNode, SubProcess>();
 	
 	@SuppressWarnings("unchecked")
@@ -61,9 +63,12 @@ public class PetriNetToBPMNWithSubProcConverterPlugin {
 			bpmnDiagram = context.tryToFindOrConstructFirstNamedObject(BPMNDiagram.class, "Convert Petri net to BPMN diagram",
 					BPMNConversionConnection.class, BPMNConversionConnection.BPMN_DIAGRAM,
 					petrinetGraph);
-			// Retrieve conversion map
-			conversionMap = context.tryToFindOrConstructFirstNamedObject(Map.class, "Convert Petri net to BPMN diagram",
-					BPMNConversionConnection.class, BPMNConversionConnection.CONVERSION_MAP,
+			// Retrieve conversion maps
+			transitionConversionMap = context.tryToFindOrConstructFirstNamedObject(Map.class, "Convert Petri net to BPMN diagram",
+					BPMNConversionConnection.class, BPMNConversionConnection.TRANSITION_CONVERSION_MAP,
+					bpmnDiagram);
+			placeConversionMap = context.tryToFindOrConstructFirstNamedObject(Map.class, "Convert Petri net to BPMN diagram",
+					BPMNConversionConnection.class, BPMNConversionConnection.PLACE_CONVERSION_MAP,
 					bpmnDiagram);
 			
 		} catch (ConnectionCannotBeObtained e) {
@@ -79,7 +84,7 @@ public class PetriNetToBPMNWithSubProcConverterPlugin {
 		connectionManager.addConnection(new BPMNConversionConnection("Connection between "
 				+ "BPMN model" + bpmnDiagram.getLabel()
 				+ ", Petri net" + petrinetGraph.getLabel(),
-				bpmnDiagram, petrinetGraph, conversionMap, true));
+				bpmnDiagram, petrinetGraph, transitionConversionMap, placeConversionMap, true));
 		
 		return bpmnDiagram;
 	}

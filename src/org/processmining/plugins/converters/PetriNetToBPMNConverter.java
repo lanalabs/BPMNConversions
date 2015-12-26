@@ -1,11 +1,18 @@
 package org.processmining.plugins.converters;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
+import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetEdge;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
@@ -14,8 +21,6 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.ResetArc;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 
-import java.util.*;
-
 public class PetriNetToBPMNConverter {
 
     private static final String EXCLUSIVE_GATEWAY = "Exclusive gateway";
@@ -23,7 +28,8 @@ public class PetriNetToBPMNConverter {
 
     private final PetrinetGraph petriNet;
     private BPMNDiagram bpmnDiagram;
-    private Map<String, Activity> conversionMap;
+    private Map<String, Activity> transitionConversionMap;
+    private Map<Place, Flow> placeConversionMap;
 
     private final Place initialPlace;
 
@@ -38,11 +44,12 @@ public class PetriNetToBPMNConverter {
         if (bpmnDiagram != null) return bpmnDiagram;
 
         bpmnDiagram = new BPMNDiagramImpl("BPMN diagram for " + petriNet.getLabel());
-        conversionMap = new HashMap<String, Activity>();
+        transitionConversionMap = new HashMap<String, Activity>();
+        placeConversionMap = new HashMap<Place, Flow>();
         Set<Place> convertedPlaces = new HashSet<Place>();
 
-        convertTransitionsToActivities(petriNet, bpmnDiagram, conversionMap);
-        convertPlacesToRoutingElements(petriNet, bpmnDiagram, conversionMap, convertedPlaces);
+        convertTransitionsToActivities(petriNet, bpmnDiagram, transitionConversionMap);
+        convertPlacesToRoutingElements(petriNet, bpmnDiagram, transitionConversionMap, convertedPlaces);
 
         return bpmnDiagram;
     }
@@ -136,14 +143,16 @@ public class PetriNetToBPMNConverter {
         Gateway xorSplit = null;
         if (outTransitions.size() > 1) {
             xorSplit = bpmnDiagram.addGateway(EXCLUSIVE_GATEWAY, Gateway.GatewayType.DATABASED);
-            bpmnDiagram.addFlow(startNode, xorSplit, null);
+            Flow flow = bpmnDiagram.addFlow(startNode, xorSplit, null);
+            placeConversionMap.put(place, flow);
         }
 
         // Consider each out transition
         for (Transition outTransition : outTransitions) {
             Activity activity = conversionMap.get(outTransition.getId().toString());
             if (xorSplit == null) {
-                bpmnDiagram.addFlow(startNode, activity, null);
+            	Flow flow = bpmnDiagram.addFlow(startNode, activity, null);
+            	placeConversionMap.put(place, flow);
             } else {
                 bpmnDiagram.addFlow(xorSplit, activity, null);
             }
@@ -246,7 +255,8 @@ public class PetriNetToBPMNConverter {
                 lastNode = connectToInTransition(inTransition, petrinetGraph, bpmnDiagram, conversionMap, null);
             }
             if (hasEquivalentPlaces) {
-                bpmnDiagram.addFlow(lastNode, andJoin, null);
+                Flow flow = bpmnDiagram.addFlow(lastNode, andJoin, null);
+                placeConversionMap.put(somePlace, flow);
             }
         }
         return (andJoin != null ? andJoin : lastNode);
@@ -294,7 +304,11 @@ public class PetriNetToBPMNConverter {
         return null;
     }
 
-    public Map<String, Activity> getConversionMap() {
-        return conversionMap;
+    public Map<String, Activity> getTransitionConversionMap() {
+        return transitionConversionMap;
+    }
+    
+    public Map<Place, Flow> getPlaceConversionMap() {
+        return placeConversionMap;
     }
 }
