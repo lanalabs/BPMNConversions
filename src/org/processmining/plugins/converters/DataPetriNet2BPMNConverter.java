@@ -12,6 +12,7 @@ import org.processmining.framework.connections.ConnectionCannotBeObtained;
 import org.processmining.framework.connections.ConnectionManager;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginLevel;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
@@ -39,7 +40,7 @@ import org.processmining.models.semantics.petrinet.Marking;
  * @author Anna Kalenkova
  * Dec 12, 2013
  */
-@Plugin(name = "Convert Data Petri net to BPMN diagram", parameterLabels = { "Data Petri net" }, 
+@Plugin(name = "Convert Data Petri net to BPMN diagram", level = PluginLevel.PeerReviewed, parameterLabels = { "Data Petri net" }, 
 returnLabels = { "BPMN Diagram", "Conversion map"}, returnTypes = { BPMNDiagram.class, Map.class}, 
 userAccessible = true, help = "Converts Data Petri net to BPMN diagram")
 public class DataPetriNet2BPMNConverter {

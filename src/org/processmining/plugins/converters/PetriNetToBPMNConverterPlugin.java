@@ -12,6 +12,7 @@ import org.processmining.framework.connections.ConnectionManager;
 import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginLevel;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.connections.petrinets.structural.FreeChoiceInfoConnection;
@@ -45,7 +46,7 @@ import org.processmining.plugins.graphalgorithms.DFS;
  * @author Anna Kalenkova 
  * Jul 18, 2013
  */
-@Plugin(name = "Convert Petri net to BPMN diagram", parameterLabels = { "Petri net" }, returnLabels = {
+@Plugin(name = "Convert Petri net to BPMN diagram", level = PluginLevel.PeerReviewed, parameterLabels = { "Petri net" }, returnLabels = {
 		"BPMN Diagram ", "Transition Conversion map", "Place Conversion Map" }, returnTypes = { BPMNDiagram.class, Map.class, Map.class }, userAccessible = true, help = "Converts Petri net to BPMN diagram")
 public class PetriNetToBPMNConverterPlugin {
 
