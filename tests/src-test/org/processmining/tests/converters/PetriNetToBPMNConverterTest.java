@@ -22,6 +22,7 @@ import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinet.impl.PetrinetImpl;
+import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.converters.BPMNUtils;
 import org.processmining.plugins.converters.PetriNetToBPMNConverter;
 
@@ -30,6 +31,8 @@ public class PetriNetToBPMNConverterTest {
     private static String EMPTY = BPMNUtils.EMPTY;
 
     private Place currentInitialPlace;
+    
+    private Marking finalMarking; 
 
     @Before
     public void setUp()
@@ -41,7 +44,7 @@ public class PetriNetToBPMNConverterTest {
     public void convert_withTestCase1_expectedCorrectConversion() {
         PetrinetGraph petriNet = createPetriNetForCase1();
 
-        BPMNDiagram diagram = new PetriNetToBPMNConverter(petriNet, currentInitialPlace)
+        BPMNDiagram diagram = new PetriNetToBPMNConverter(petriNet, currentInitialPlace, finalMarking)
                 .convert();
 
         assertDiagramForCase1(diagram);

@@ -10,7 +10,6 @@ import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
-import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataPetriNet;
 import org.processmining.models.semantics.petrinet.Marking;
 
@@ -39,7 +38,7 @@ public class BPMN2PetriNetWithDataConverter_Plugin {
 		boolean success = conv.convertWithData();
 		
 		if (success) {
-			Petrinet net = conv.getDataPetriNet();
+			DataPetriNet net = conv.getDataPetriNet();
 			Marking m = conv.getMarking();
 			context.getConnectionManager().addConnection(new InitialMarkingConnection(net, m));
 

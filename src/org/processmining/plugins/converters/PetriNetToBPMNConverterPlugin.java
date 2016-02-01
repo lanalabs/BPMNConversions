@@ -14,6 +14,7 @@ import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginLevel;
 import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.models.connections.petrinets.behavioral.FinalMarkingConnection;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.connections.petrinets.structural.FreeChoiceInfoConnection;
 import org.processmining.models.graphbased.directed.DirectedGraphNode;
@@ -61,14 +62,17 @@ public class PetriNetToBPMNConverterPlugin {
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting Petri net To BPMN diagram");
 
-        Marking initialMarking = retrieveMarking(context, petrinetGraph);
+        Marking initialMarking = retrieveInitialMarking(context, petrinetGraph);
+        
+        Marking finalMarking = retrieveFinalMarking(context, petrinetGraph);
 
 		// Clone to Petri net with marking
-		Object[] cloneResult = cloneToPetrinet(petrinetGraph, initialMarking);
+		Object[] cloneResult = cloneToPetrinet(petrinetGraph, initialMarking, finalMarking);
 		PetrinetGraph clonePetrinet = (PetrinetGraph) cloneResult[0];
 		Map<Transition, Transition> transitionsMap = (Map<Transition, Transition>) cloneResult[1];
 		Map<Place, Place> placesMap = (Map<Place, Place>) cloneResult[2];
-		Marking cloneMarking = (Marking) cloneResult[3];
+		Marking cloneInitialMarking = (Marking) cloneResult[3];
+		Marking cloneFinalMarking = (Marking) cloneResult[4];
 
 		// Check whether Petri net without reset arcs is a free-choice net
 		Map<PetrinetNode, Set<PetrinetNode>> deletedResetArcs = deleteResetArcs(clonePetrinet);
@@ -87,7 +91,7 @@ public class PetriNetToBPMNConverterPlugin {
 		}
 
 		// Convert to a Petri net with one source place if needed
-		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneMarking);
+		convertToPetrinetWithOneSourcePlace(clonePetrinet, cloneInitialMarking);
 
 		// Handle transitions without incoming sequence flows
 		handleTransitionsWithoutIncomingFlows(clonePetrinet);
@@ -96,7 +100,7 @@ public class PetriNetToBPMNConverterPlugin {
 		removeDeadPlaces(clonePetrinet);
 
 		// Convert Petri net to a BPMN diagram
-        PetriNetToBPMNConverter converter = new PetriNetToBPMNConverter(clonePetrinet, initialPlace);
+        PetriNetToBPMNConverter converter = new PetriNetToBPMNConverter(clonePetrinet, initialPlace, cloneFinalMarking);
         BPMNDiagram bpmnDiagram = converter.convert();
 		Map<String, Activity> transitionConversionMap = converter.getTransitionConversionMap();
 		Map<Place, Flow> placeConversionMap = converter.getPlaceConversionMap();
@@ -105,7 +109,9 @@ public class PetriNetToBPMNConverterPlugin {
 		BPMNUtils.simplifyBPMNDiagram(transitionConversionMap, bpmnDiagram);
 		
 		// Handle activities without outgoing sequence flows
-		handleActivitiesWithoutOutgoingFlows(bpmnDiagram);
+		if ((cloneFinalMarking != null) && (cloneFinalMarking.size() > 0)) {
+			handleActivitiesWithoutOutgoingFlows(bpmnDiagram);
+		}
 
 		//Add end event
 		//addEndEvent(bpmnDiagram);
@@ -245,13 +251,13 @@ public class PetriNetToBPMNConverterPlugin {
 	}
 
     /**
-	 * isInitialPlace Retrieve marking for a Petri net graph
+	 * Retrieve initial marking for a Petri net graph
 	 * 
 	 * @param context
 	 * @param petrinetGraph
 	 * @return
 	 */
-	private Marking retrieveMarking(PluginContext context, PetrinetGraph petrinetGraph) {
+	private Marking retrieveInitialMarking(PluginContext context, PetrinetGraph petrinetGraph) {
 		Marking marking = new Marking();
 		try {
 			InitialMarkingConnection initialMarkingConnection = context.getConnectionManager().getFirstConnection(
@@ -267,6 +273,25 @@ public class PetriNetToBPMNConverterPlugin {
 		}
 		return marking;
 	}
+	
+	 /**
+		 * Retrieve final marking for a Petri net graph
+		 * 
+		 * @param context
+		 * @param petrinetGraph
+		 * @return
+		 */
+		private Marking retrieveFinalMarking(PluginContext context, PetrinetGraph petrinetGraph) {
+			Marking marking = new Marking();
+			try {
+				FinalMarkingConnection finalMarkingConnection = context.getConnectionManager().getFirstConnection(
+						FinalMarkingConnection.class, context, petrinetGraph);
+				marking = finalMarkingConnection.getObjectWithRole(FinalMarkingConnection.MARKING);
+			} catch (ConnectionCannotBeObtained e) {
+				return null;
+			}
+			return marking;
+		}
 	
 	private Place retrieveSourcePlace(PetrinetGraph petrinetGraph) {
 		for(Place place : petrinetGraph.getPlaces()) {
@@ -521,11 +546,12 @@ public class PetriNetToBPMNConverterPlugin {
 	 * @param dataPetriNet
 	 * @return
 	 */
-	private Object[] cloneToPetrinet(PetrinetGraph petriNet, Marking marking) {
+	private Object[] cloneToPetrinet(PetrinetGraph petriNet, Marking initialMarking, Marking finalMarking) {
 		ResetInhibitorNet clonePetriNet = new ResetInhibitorNetImpl(petriNet.getLabel());
 		Map<Transition, Transition> transitionsMap = new HashMap<Transition, Transition>();
 		Map<Place, Place> placesMap = new HashMap<Place, Place>();
-		Marking newMarking = new Marking();
+		Marking newInitialMarking = new Marking();
+		Marking newFinalMarking = new Marking();
 
 		for (Transition transition : petriNet.getTransitions()) {
 			Transition newTransition = clonePetriNet.addTransition(transition.getLabel());
@@ -558,12 +584,18 @@ public class PetriNetToBPMNConverterPlugin {
 		}
 
 		// Construct marking for the clone Petri net
-		if (marking != null) {
-			for (Place markedPlace : marking.toList()) {
-				newMarking.add(placesMap.get(markedPlace));
+		if (initialMarking != null) {
+			for (Place markedPlace : initialMarking.toList()) {
+				newInitialMarking.add(placesMap.get(markedPlace));
+			}
+		}
+		
+		if (finalMarking != null) {
+			for (Place markedPlace : finalMarking.toList()) {
+				newFinalMarking.add(placesMap.get(markedPlace));
 			}
 		}
 
-		return new Object[] { clonePetriNet, transitionsMap, placesMap, newMarking };
+		return new Object[] { clonePetriNet, transitionsMap, placesMap, newInitialMarking, newFinalMarking };
 	}
 }
