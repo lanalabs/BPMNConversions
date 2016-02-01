@@ -35,7 +35,7 @@ public class BPMNUtils {
 
         removeSilentActivities(conversionMap, diagram);
         reduceGateways(diagram);
-		//mergeActivitiesAndGateways(diagram);
+		mergeActivitiesAndGateways(diagram);
 		removeSuperfluousGateways(diagram);
 	}
 	
