@@ -3,10 +3,12 @@ package org.processmining.plugins.converters.bpmn2pn;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.processmining.models.graphbased.directed.ContainableDirectedGraphElement;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
@@ -163,11 +165,19 @@ public class BPMN2PetriNetConverter {
 	 */
 	private void translateActivities() {
 		for (Activity a : bpmn.getActivities()) {
-			translateActivity(a);
+			translateActivity(a, false);
 		}
 	}
 	
-	private void translateActivity(Activity a) {
+	/**
+	 * Translate activity. If the activity is a subprocess with defined inner
+	 * behavior, then start and complete of the activity are linked to start event and
+	 * end event of the subprocess
+	 * 
+	 * @param a
+	 * @param linkToSubprocess
+	 */
+	private void translateActivity(Activity a, boolean linkToSubprocess) {
 		Set<PetrinetNode> nodeSet = new HashSet<PetrinetNode>();
 		nodeMap.put(a, nodeSet);
 
@@ -243,6 +253,58 @@ public class BPMN2PetriNetConverter {
 				nodeSet.add(p_act_wasExecuted);
 			}
 			
+			// if activity has an inner definition of a subprocess
+			if (a instanceof SubProcess) {
+				
+				Set<ContainableDirectedGraphElement> children = ((SubProcess) a).getChildren();
+				
+				// get the start and end event of the process
+				List<Event> startEvents = new LinkedList<Event>();
+				List<Event> endEvents = new LinkedList<Event>();
+				for (ContainableDirectedGraphElement c : children) {
+					if (c instanceof Event) {
+						Event e = (Event)c;
+						switch (e.getEventType()) {
+							case START:
+								startEvents.add(e);
+								break;
+							case END:
+								endEvents.add(e);
+								break;
+							default:
+								// ignore
+								break;
+						}
+					}
+				}
+				
+				if (startEvents.size() > 1) warnings.add("Subprocess '"+a.getLabel()+"' has multiple start events. Start events are assumed to be exclusive.");
+				if (endEvents.size() > 1) warnings.add("Subprocess '"+a.getLabel()+"' has multiple end events. End events are assumed to be exclusive.");
+				
+				// they should be translated by now, 
+				// link start and end events of the subprocess to start and end transitions of this activity
+				for (Event startEvent : startEvents) {
+					Set<PetrinetNode> startNodes = nodeMap.get(startEvent);
+					for (PetrinetNode n : startNodes) {
+						if (n instanceof Place) {
+							Place p = (Place)n;
+							m.remove(p); // initial place of start node is no longer initially marked
+							net.addArc(t_start, p);
+						}
+					}
+				}
+				
+				for (Event endEvent : endEvents) {
+					Set<PetrinetNode> endNodes = nodeMap.get(endEvent);
+					for (PetrinetNode n : endNodes) {
+						if (n instanceof Place) {
+							Place p = (Place)n;
+							net.addArc(p, t_end);
+						}
+					}				
+				}
+			}
+			
 		} else {
 			// default case of atomic task
 			nodeSet.add(t_act);
@@ -262,6 +324,8 @@ public class BPMN2PetriNetConverter {
 		}
 	}
 	
+	
+	
 	/**
 	 * Translate subprocesses to Petri net patterns. Currently only as atomic tasks.
 	 * 
@@ -269,8 +333,9 @@ public class BPMN2PetriNetConverter {
 	 */
 	private void translateSubProcesses() {
 		for (SubProcess s : bpmn.getSubProcesses()) {
-			warnings.add("Subprocess '"+s.getLabel()+"' has been translated as activity; inner details are not considered.");
-			translateActivity(s);
+			//warnings.add("Subprocess '"+s.getLabel()+"' has been translated as activity; inner details are not considered.");
+			boolean hasInnerDefinition = (s.getGraph() != null && s.getGraph() instanceof BPMNDiagram); 
+			translateActivity(s, hasInnerDefinition);
 		}
 	}
 	
@@ -284,6 +349,7 @@ public class BPMN2PetriNetConverter {
 		
 		if (a.isBLooped()) return false;
 		if (getBoundaryEvents(a).size() > 0) return false;
+		if (a instanceof SubProcess) return false;
 		return true;
 	}
 	
