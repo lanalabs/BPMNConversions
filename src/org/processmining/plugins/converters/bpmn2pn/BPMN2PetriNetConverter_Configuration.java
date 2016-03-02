@@ -12,6 +12,6 @@ public class BPMN2PetriNetConverter_Configuration {
 	 * included in the resulting Petri net but as a separate fragment not
 	 * connected to the main process.
 	 */
-	public boolean linkSubProcessToActivity = true;
+	public boolean linkSubProcessToActivity = false;
 
 }
