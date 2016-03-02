@@ -52,10 +52,13 @@ public class BPMN2PetriNetConverter {
 	 * maps each BPMN node to a set of Petri net nodes (transitions and places)
 	 */
 	private Map<BPMNNode, Set<PetrinetNode>> nodeMap = new HashMap<BPMNNode, Set<PetrinetNode>>();
+	
+	protected BPMN2PetriNetConverter_Configuration config; // visible to subclasses using this conversion
 
 	
-	public BPMN2PetriNetConverter(BPMNDiagram bpmn) {
+	public BPMN2PetriNetConverter(BPMNDiagram bpmn, BPMN2PetriNetConverter_Configuration config) {
 		this.bpmn = bpmn;
+		this.config = config;
 	}
 	
 	public boolean convert() {
@@ -253,8 +256,8 @@ public class BPMN2PetriNetConverter {
 				nodeSet.add(p_act_wasExecuted);
 			}
 			
-			// if activity has an inner definition of a subprocess
-			if (a instanceof SubProcess) {
+			// if activity has an inner definition of a subprocess and definition shall be linked
+			if (a instanceof SubProcess && linkToSubprocess) {
 				
 				Set<ContainableDirectedGraphElement> children = ((SubProcess) a).getChildren();
 				
@@ -335,7 +338,7 @@ public class BPMN2PetriNetConverter {
 		for (SubProcess s : bpmn.getSubProcesses()) {
 			//warnings.add("Subprocess '"+s.getLabel()+"' has been translated as activity; inner details are not considered.");
 			boolean hasInnerDefinition = (s.getGraph() != null && s.getGraph() instanceof BPMNDiagram); 
-			translateActivity(s, hasInnerDefinition);
+			translateActivity(s, hasInnerDefinition && config.linkSubProcessToActivity);
 		}
 	}
 	
@@ -349,7 +352,7 @@ public class BPMN2PetriNetConverter {
 		
 		if (a.isBLooped()) return false;
 		if (getBoundaryEvents(a).size() > 0) return false;
-		if (a instanceof SubProcess) return false;
+		if (a instanceof SubProcess && config.linkSubProcessToActivity) return false;
 		return true;
 	}
 	

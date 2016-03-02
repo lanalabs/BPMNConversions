@@ -2,6 +2,7 @@ package org.processmining.plugins.converters.bpmn2pn;
 
 import javax.swing.JOptionPane;
 
+import org.deckfour.uitopia.api.event.TaskListener.InteractionResult;
 import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
 import org.processmining.framework.plugin.PluginContext;
@@ -19,16 +20,26 @@ import org.processmining.models.semantics.petrinet.Marking;
  * @author Dirk Fahland
  * Jul 18, 2013
  */
-@Plugin(name = "Convert BPMN diagram to Petri net (control-flow)", parameterLabels = { "Petri net" }, 
+@Plugin(name = "Convert BPMN diagram to Petri net (control-flow)", parameterLabels = { "BPMN model", "Conversion Configuration" }, 
 returnLabels = { "Petri net", "Initial Marking"}, returnTypes = { Petrinet.class, Marking.class }, 
 userAccessible = true, help = "Convert BPMN diagram to Petri net")
 public class BPMN2PetriNetConverter_Plugin {
 	
 	@UITopiaVariant(affiliation = "TU/e", author = "D. Fahland", email = "d.fahland@tue.nl")
 	@PluginVariant(variantLabel = "Convert BPMN diagram to Petri net", requiredParameterLabels = { 0 })
-	public Object[] convert(PluginContext context, BPMNDiagram bpmn) {
+	public Object[] convert(UIPluginContext context, BPMNDiagram bpmn) {
+		BPMN2PetriNetConverter_Configuration config = new BPMN2PetriNetConverter_Configuration();		
+		BPMN2PetriNetConverter_UI ui = new BPMN2PetriNetConverter_UI(config);
+		if (ui.setParameters(context, config) != InteractionResult.CANCEL)
+			return convert(context, bpmn, config);
+		else
+			return cancel(context, "Cancelled by user.");
+	}
+	
+	@PluginVariant(variantLabel = "Convert BPMN diagram to Petri net", requiredParameterLabels = { 0, 1 })
+	public Object[] convert(PluginContext context, BPMNDiagram bpmn, BPMN2PetriNetConverter_Configuration config) {
 		
-		BPMN2PetriNetConverter conv = new BPMN2PetriNetConverter(bpmn);
+		BPMN2PetriNetConverter conv = new BPMN2PetriNetConverter(bpmn, config);
 		
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting BPMN diagram to Petri net");

@@ -2,6 +2,7 @@ package org.processmining.plugins.converters.bpmn2pn;
 
 import javax.swing.JOptionPane;
 
+import org.deckfour.uitopia.api.event.TaskListener.InteractionResult;
 import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
 import org.processmining.framework.plugin.PluginContext;
@@ -20,17 +21,29 @@ import org.processmining.models.semantics.petrinet.Marking;
  * Jul 18, 2013
  */
 @Plugin(name = "Convert BPMN diagram to Data Petri net", 
-parameterLabels = { "Data Petri net" }, returnLabels = { "Data Petri net", "Initial Marking"}, 
+parameterLabels = { "BPMN model", "Conversion Configuration" }, returnLabels = { "Data Petri net", "Initial Marking"}, 
 returnTypes = { DataPetriNet.class, Marking.class }, 
 userAccessible = true, help = "Convert BPMN diagram to Data Petri net")
 public class BPMN2PetriNetWithDataConverter_Plugin {
 	
+	
+	
 	@UITopiaVariant(affiliation = "HSE,TU/e", author = "A. Kalenkova, D. Fahland", 
 			email = "akalenkova@hse.ru, d.fahland@tue.nl")
-	@PluginVariant(variantLabel = "Convert BPMN diagram to Petri net", requiredParameterLabels = { 0 })
-	public Object[] convert(PluginContext context, BPMNDiagram bpmn) {
+	@PluginVariant(variantLabel = "Convert BPMN diagram to Data Petri net", requiredParameterLabels = { 0 })
+	public Object[] convert(UIPluginContext context, BPMNDiagram bpmn) {
+		BPMN2PetriNetWithDataConverter_Configuration config = new BPMN2PetriNetWithDataConverter_Configuration();		
+		BPMN2PetriNetWithDataConverter_UI ui = new BPMN2PetriNetWithDataConverter_UI(config);
+		if (ui.setParameters(context, config) != InteractionResult.CANCEL)
+			return convert(context, bpmn, config);
+		else
+			return cancel(context, "Cancelled by user.");
+	}
+	
+	@PluginVariant(variantLabel = "Convert BPMN diagram to Data Petri net", requiredParameterLabels = { 0, 1 })
+	public Object[] convert(PluginContext context, BPMNDiagram bpmn, BPMN2PetriNetWithDataConverter_Configuration config) {
 		
-		BPMN2DataPetriNetConverter conv = new BPMN2DataPetriNetConverter(bpmn);
+		BPMN2DataPetriNetConverter conv = new BPMN2DataPetriNetConverter(bpmn, config);
 		
 		Progress progress = context.getProgress();
 		progress.setCaption("Converting BPMN diagram to Data Petri net");
