@@ -38,6 +38,10 @@ public class BPMN2DataPetriNetConverter extends BPMN2PetriNetConverter {
 	public BPMN2DataPetriNetConverter(BPMNDiagram bpmn, BPMN2PetriNetWithDataConverter_Configuration config) {
 		super(bpmn, config);
 	}
+	
+	public BPMN2DataPetriNetConverter(BPMNDiagram bpmn) {
+		super(bpmn, new BPMN2PetriNetWithDataConverter_Configuration());
+	}
 
 	public boolean convertWithData() {
 	   

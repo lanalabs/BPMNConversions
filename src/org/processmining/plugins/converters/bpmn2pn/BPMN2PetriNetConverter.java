@@ -61,6 +61,11 @@ public class BPMN2PetriNetConverter {
 		this.config = config;
 	}
 	
+	public BPMN2PetriNetConverter(BPMNDiagram bpmn) {
+		this(bpmn, new BPMN2PetriNetConverter_Configuration());
+	}
+
+	
 	public boolean convert() {
 		
 		net = PetrinetFactory.newPetrinet("Petri net from "+bpmn.getLabel());
