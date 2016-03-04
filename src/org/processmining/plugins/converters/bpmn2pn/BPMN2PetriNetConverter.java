@@ -76,6 +76,47 @@ public class BPMN2PetriNetConverter {
 		translateActivities();
 		translateSubProcesses();
 		translateGateways();
+		
+		if (!config.linkSubProcessToActivity) {
+			
+			// make each subprocess executable as an alternative path:
+			// add new initial/final place
+			Place p_uniqueStart = net.addPlace("i");
+			Place p_uniqueEnd = net.addPlace("o");
+			
+			for (Event e : bpmn.getEvents()) {
+				switch (e.getEventType()) {
+					// for each start event, create new start transition to mark initial event
+					case START:
+						Set<PetrinetNode> startNodes = nodeMap.get(e);
+						for (PetrinetNode n : startNodes) {
+							if (n instanceof Place) {
+								Place p = (Place)n;
+								m.remove(p); // initial place of start node is no longer initially marked
+								Transition t_eventStart = net.addTransition("t_start_"+e.getLabel());
+								net.addArc(p_uniqueStart, t_eventStart);
+								net.addArc(t_eventStart, p);
+							}
+						}
+						break;
+					// for each end event, create new end transition to clear final event
+					case END:
+						Set<PetrinetNode> endNodes = nodeMap.get(e);
+						for (PetrinetNode n : endNodes) {
+							if (n instanceof Place) {
+								Place p = (Place)n;
+								Transition t_eventEnd = net.addTransition("t_end_"+e.getLabel());
+								net.addArc(p, t_eventEnd);
+								net.addArc(t_eventEnd, p_uniqueEnd);
+							}
+						}
+						break;
+					default:
+						break;
+				}
+			}
+			m.add(p_uniqueStart);
+		}
 
 		return errors.size() == 0;
 	}

@@ -13,5 +13,5 @@ public class BPMN2PetriNetConverter_Configuration {
 	 * connected to the main process.
 	 */
 	public boolean linkSubProcessToActivity = false;
-
+	
 }

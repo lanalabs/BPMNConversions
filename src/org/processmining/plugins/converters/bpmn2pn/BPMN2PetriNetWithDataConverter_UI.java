@@ -72,7 +72,7 @@ public class BPMN2PetriNetWithDataConverter_UI extends ProMPropertiesPanel {
 	 * @return
 	 */
 	protected InteractionResult getUserChoice(UIPluginContext context) {
-		return context.showConfiguration("Repair Model", this);
+		return context.showConfiguration("Translate BPMN to Data Petri net", this);
 	}
 	
 	/**
