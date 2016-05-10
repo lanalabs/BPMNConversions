@@ -121,6 +121,7 @@
             <!-- parameters to run ProM -->
             <jvmarg value="-ea"/>
             <jvmarg value="-Xmx2G"/>
+	    	<jvmarg value="-XX:MaxPermSize=512M"/>
             <jvmarg value="-XX:+UseCompressedOops"/>
             <jvmarg value="-noverify"/>
             <jvmarg value="-Djava.library.path=.//lib;.//stdlib;.//packagelib"/>
