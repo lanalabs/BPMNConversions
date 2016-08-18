@@ -61,6 +61,6 @@
 	<classpathentry kind="lib" path="tests/libs-external/mockito-all-1.9.5.jar"/>
 	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-20160212.jar"/>
 	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-XStream-20160212.jar"/>
-	<classpathentry kind="lib" path="packagelib/Log-lib/univocity-parsers-1.5.5.jar"/>
+	<classpathentry kind="lib" path="packagelib/DataExpression.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
