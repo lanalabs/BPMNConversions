@@ -6,12 +6,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
+import org.processmining.datapetrinets.DataPetriNet;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
-import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataPetriNet;
 import org.processmining.plugins.converters.BPMNConversionConnection;
 import org.processmining.processtree.ProcessTree;
 

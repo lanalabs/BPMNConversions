@@ -25,7 +25,6 @@
 	<classpathentry kind="lib" path="stdlib/TableLayout-20050920.jar"/>
 	<classpathentry kind="lib" path="stdlib/Uitopia.jar"/>
 	<classpathentry kind="lib" path="stdlib/UITopiaResources.jar"/>
-	<classpathentry kind="lib" path="stdlib/weka.jar"/>
 	<classpathentry kind="lib" path="stdlib/xpp3-1.1.4c.jar"/>
 	<classpathentry kind="lib" path="stdlib/ProM-Contexts.jar"/>
 	<classpathentry kind="lib" path="stdlib/ProM-Framework.jar"/>
@@ -62,5 +61,6 @@
 	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-20160212.jar"/>
 	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-XStream-20160212.jar"/>
 	<classpathentry kind="lib" path="packagelib/DataExpression.jar"/>
+	<classpathentry kind="lib" path="packagelib/Weka-lib/weka-latest.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

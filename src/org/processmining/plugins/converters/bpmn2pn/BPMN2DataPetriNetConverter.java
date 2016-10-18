@@ -1,9 +1,10 @@
 package org.processmining.plugins.converters.bpmn2pn;
 
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.processmining.datapetrinets.DataPetriNet;
+import org.processmining.datapetrinets.exception.NonExistingVariableException;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
@@ -15,7 +16,6 @@ import org.processmining.models.graphbased.directed.petrinet.PetrinetNode;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.graphbased.directed.petrinet.elements.Transition;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataElement;
-import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataPetriNet;
 import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.PetriNetWithData;
 
 /**
@@ -126,8 +126,11 @@ public class BPMN2DataPetriNetConverter extends BPMN2PetriNetConverter {
 					Activity activity = (Activity) (sequenceFlow.getTarget());
 					Transition transition = activitiesMap.get(activity);
 					try {
-						dataPetriNet.setGuard(transition, guard);
-					} catch (ParseException e) {
+						dataPetriNet.setGuardFromString(transition, guard);
+					} catch (org.processmining.datapetrinets.expression.syntax.ParseException e) {
+						e.printStackTrace();
+						errors.add("Parse guard exception " + guard);
+					} catch (NonExistingVariableException e) {
 						e.printStackTrace();
 						errors.add("Parse guard exception " + guard);
 					}

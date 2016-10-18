@@ -2,13 +2,13 @@ package org.processmining.plugins.converters;
 
 import java.util.Map;
 
+import org.processmining.datapetrinets.DataPetriNet;
 import org.processmining.framework.connections.impl.AbstractConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.petrinet.PetrinetGraph;
 import org.processmining.models.graphbased.directed.petrinet.elements.Place;
-import org.processmining.models.graphbased.directed.petrinetwithdata.newImpl.DataPetriNet;
 import org.processmining.processtree.ProcessTree;
 
 public class BPMNConversionConnection extends AbstractConnection {
