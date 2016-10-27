@@ -1,66 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="src-test"/>
 	<classpathentry kind="src" output="tests/bin-test" path="tests/src-test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="stdlib/axis.jar"/>
-	<classpathentry kind="lib" path="stdlib/bsh-2.0b4.jar"/>
-	<classpathentry kind="lib" path="stdlib/collections-generic-4.01.jar"/>
-	<classpathentry kind="lib" path="stdlib/colt.jar"/>
-	<classpathentry kind="lib" path="stdlib/commons-compress-1.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/FilterableSortableTablePanel.jar"/>
-	<classpathentry kind="lib" path="stdlib/flanagan.jar"/>
-	<classpathentry kind="lib" path="stdlib/jargs.jar"/>
-	<classpathentry kind="lib" path="stdlib/jcommon-1.0.16.jar"/>
-	<classpathentry kind="lib" path="stdlib/jlfgr-1_0.jar"/>
-	<classpathentry kind="lib" path="stdlib/jung-algorithms-2.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/jung-api-2.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/jung-graph-impl-2.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/jung-io-2.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/jung-visualization-2.0.jar"/>
-	<classpathentry kind="lib" path="stdlib/simmetrics.jar"/>
-	<classpathentry kind="lib" path="stdlib/slickerbox1.0rc1.jar"/>
-	<classpathentry kind="lib" path="stdlib/Spex.jar"/>
-	<classpathentry kind="lib" path="stdlib/TableLayout-20050920.jar"/>
-	<classpathentry kind="lib" path="stdlib/Uitopia.jar"/>
-	<classpathentry kind="lib" path="stdlib/UITopiaResources.jar"/>
-	<classpathentry kind="lib" path="stdlib/xpp3-1.1.4c.jar"/>
-	<classpathentry kind="lib" path="stdlib/ProM-Contexts.jar"/>
-	<classpathentry kind="lib" path="stdlib/ProM-Framework.jar"/>
-	<classpathentry kind="lib" path="stdlib/ProM-Models.jar"/>
-	<classpathentry kind="lib" path="stdlib/xstream-1.3.1.jar"/>
-	<classpathentry kind="lib" path="stdlib/jgraph.jar"/>
-	<classpathentry kind="lib" path="stdlib/ProM-Plugins.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/lib-cobertura/asm-3.0.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/lib-cobertura/asm-tree-3.0.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/lib-cobertura/jakarta-oro-2.0.8.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/lib-cobertura/log4j-1.2.9.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/cobertura.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/junit-4.8.1.jar"/>
-	<classpathentry kind="lib" path="packagelib/BPMN.jar"/>
-	<classpathentry kind="lib" path="packagelib/PetriNets.jar"/>
-	<classpathentry kind="lib" path="packagelib/PNAnalysis.jar"/>
-	<classpathentry kind="lib" path="packagelib/ProcessTree.jar"/>
-	<classpathentry kind="lib" path="packagelib/Flex.jar"/>
-	<classpathentry kind="lib" path="packagelib/DataPetriNets.jar"/>
-	<classpathentry kind="lib" path="packagelib/Properties.jar"/>
-	<classpathentry kind="lib" path="packagelib/Widgets.jar"/>
-	<classpathentry kind="lib" path="packagelib/ApacheUtils-lib/commons-io-2.4.jar"/>
-	<classpathentry kind="lib" path="stdlib/commons-math-3.1.jar"/>
-	<classpathentry kind="lib" path="packagelib/Log.jar"/>
-	<classpathentry kind="lib" path="stdlib/jas-plotter-2.2.jar"/>
-	<classpathentry kind="lib" path="stdlib/jfreechart-1.0.14.jar"/>
-	<classpathentry kind="lib" path="stdlib/junit-4.8.1.jar"/>
-	<classpathentry kind="lib" path="stdlib/openide-lookup-1.9-patched-1.0.jar"/>
-	<classpathentry kind="lib" path="packagelib/Widgets-lib/lib/japura-1.12.3.jar"/>
-	<classpathentry kind="lib" path="packagelib/ApacheUtils.jar"/>
-	<classpathentry kind="lib" path="packagelib/Widgets-lib/Widgets.jar"/>
-	<classpathentry kind="lib" path="stdlib/guava-16.0.1.jar"/>
-	<classpathentry kind="lib" path="tests/libs-external/mockito-all-1.9.5.jar"/>
-	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-20160212.jar"/>
-	<classpathentry kind="lib" path="packagelib/Log-lib/OpenXES-XStream-20160212.jar"/>
-	<classpathentry kind="lib" path="packagelib/DataExpression.jar"/>
-	<classpathentry kind="lib" path="packagelib/Weka-lib/weka-latest.jar"/>
+	<classpathentry kind="con" path="org.apache.ivyde.eclipse.cpcontainer.IVYDE_CONTAINER/?project=BPMNConversions&amp;ivyXmlPath=ivy.xml&amp;confs=*&amp;ivySettingsPath=ivysettings.xml&amp;loadSettingsOnDemand=false&amp;ivyUserDir=&amp;propertyFiles="/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

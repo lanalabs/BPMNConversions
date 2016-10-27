@@ -1,4 +1,4 @@
-<project name="BPMNConversions" default="Compile Sources" basedir=".">
+<project name="BPMNConversions" default="Compile Sources" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant">
 	<!-- set global properties for this build -->
 	<property environment="env" />
 	<property name="src" location="src" />
@@ -9,6 +9,15 @@
 	<property name="release" location="latestrelease" />
 	<property name="version" value="${major_minor}.${env.BUILD_NUMBER}" />
 	<property name="project" value="BPMNConversions" />
+
+	<property name="author" value="Anna Kalenkova" />
+	<property name="organization" value="Moscow The Higher School of Economics" />
+	<property name="description" value="BPMN Conversions (to and from)" />
+	<property name="license" value="L-GPL" />
+	<property name="logo" value="http://www.promtools.org/prom6/packages/prom_subtitle_hat_300.png" />
+
+	<property name="ivy.lib.dir" value="ivy" />
+	<property name="ivy.cache.dir" value="/var/lib/hudson/.ivy2/cache/${env.EXECUTOR_NUMBER}" />
 
 	<!-- Set the os to win32, win64, lin32, lin64, mac, or all -->
 	<property name="os" value="all" />
@@ -22,9 +31,8 @@
 		<pathelement path="${build}" />
 		<pathelement path="${java.class.path}" />
 		<fileset dir=".">
+			<include name="ivy/**/*.jar" />
 			<include name="lib/**/*.jar" />
-			<include name="stdlib/**/*.jar" />
-			<include name="packagelib/**/*.jar" />
 		</fileset>
 	</path>
 
@@ -100,7 +108,7 @@
 		<echo message="Building zip file packaging this project" />
 		<sequential>
 			<delete includeEmptyDirs="true" quiet="true">
-				<fileset dir="${release}" includes="${project}-*-${os}.zip"/>
+				<fileset dir="${release}" includes="${project}-*-${os}.zip" />
 			</delete>
 			<zip destfile="${release}/${project}-${version}-${os}.zip">
 				<zipfileset dir="${lib}" prefix="lib">
@@ -112,47 +120,34 @@
 			</zip>
 			<copy file="${dist}/${project}.jar" tofile="${release}/${project}.jar" overwrite="true" />
 			<delete includeEmptyDirs="true" quiet="true">
-				<fileset dir="${release}/lib" includes="**/*"/>
+				<fileset dir="${release}/lib" includes="**/*" />
 			</delete>
-			<mkdir dir="${release}/lib"/>
+			<mkdir dir="${release}/lib" />
 			<copy todir="${release}/lib" overwrite="true">
-				<fileset dir="${lib}"/>
+				<fileset dir="${lib}" />
 			</copy>
-			<echoxml file="${release}/packages.xml">
-				<packages>
-					<package 
-							name="${project}" 
-							version="${version}" 
-							os="all" 
-							url="http://www.promtools.org/prom6/packages/${project}/${project}-${version}-${os}.zip"
-							desc="BPMN Conversions (to and from)"
-							org="Moscow The Higher School of Economics" 
-							license="LGPL" 
-							author="Anna Kalenkova"
-							auto="false"
-							hasPlugins="true"
-							logo="http://www.promtools.org/prom6/packages/prom_subtitle_hat_300.png"
-						>
-						<dependency name="ApacheUtils"/>
-						<dependency name="BPMN"/>
-						<dependency name="DataPetriNets"/>
-						<dependency name="Flex"/>
-						<dependency name="Log"/>
-						<dependency name="PetriNets"/>
-						<dependency name="PNAnalysis"/>
-						<dependency name="ProcessTree"/>
-						<dependency name="Properties"/>
-						<dependency name="Widgets"/>
-						<!--a dummy dependency to make BPMNAnalysis work in the Nightly build
-							this dependecy will removed-->
-						<dependency name="FlexReplayer"/>
-					</package>
-				</packages>
-			</echoxml>
+			<exec executable="grep">
+				<redirector output="ivypack.xml" />
+				<arg value="&lt;dependency .*org=&quot;prom&quot; " />
+				<arg value="ivy.xml" />
+			</exec>
+			<echo file="${release}/packages.xml">
+					&lt;packages&gt;
+						&lt;package name="${project}" version="${version}" os="${os}" url="http://www.promtools.org/prom6/packages/${project}/${project}-${version}-${os}.zip" desc="${description}" org="${organization}" license="${license}" author="${author}" auto="false" hasPlugins="true" logo="${logo}"&gt;
+				</echo>
+			<concat destfile="${release}/packages.xml" append="true">
+				<filelist files="ivypack.xml" />
+			</concat>
+			<echo file="${release}/packages.xml" append="true">
+						&lt;/package&gt;
+					&lt;/packages&gt;
+				</echo>
+			<copy file="ivy.xml" tofile="${release}/ivy.xml" overwrite="true" />
+			<replace file="${release}/ivy.xml" token="VERSION" value="${version}" />
 		</sequential>
 	</target>
 
-	<target name="Compile Sources">
+	<target name="Compile Sources" depends="resolve">
 		<!-- Create the build directory structure used by compile -->
 		<!-- Create the time stamp -->
 		<tstamp />
@@ -167,6 +162,21 @@
 	<!-- run test for the package (compile first) -->
 	<target name="check" depends="Compile Sources">
 		<ant antfile="./build.xml" dir="./tests/" />
+	</target>
+
+	<target name="resolve">
+		<ivy:retrieve sync="true" />
+		<delete>
+			<fileset dir="lib">
+				<include name="*" />
+				<!--exclude name="OpenXES*.jar" /-->
+			</fileset>
+		</delete>
+		<copy todir="lib" overwrite="true">
+			<fileset dir="ivy">
+				<include name="mockito-all-1.9.5.jar" />
+			</fileset>
+		</copy>
 	</target>
 
 </project>
