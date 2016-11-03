@@ -4,7 +4,12 @@
     		Version VERSION
     	</description>
     </info>
-    <dependencies>
+    <configurations>
+   		<conf name="default" extends="lib" />
+   		<conf name="lib" />
+	</configurations>  
+    <dependencies defaultconf="default">
+       <!-- ProM dependencies -->	
        <dependency org="prom" name="ProM-Plugins" rev="latest" changing="true" transitive="true" />
        <dependency org="prom" name="ApacheUtils" rev="latest" changing="true" transitive="true" />
        <dependency org="prom" name="BPMN" rev="latest" changing="true" transitive="true" />
@@ -18,6 +23,7 @@
        <dependency org="prom" name="Properties" rev="latest" changing="true" transitive="true" />
        <dependency org="prom" name="Weka" rev="latest" changing="true" transitive="true" />
        <dependency org="prom" name="Widgets" rev="latest" changing="true" transitive="true" />
-       <dependency org="org.mockito" name="mockito-all" rev="1.9.5" />
+       <!-- Third party libraries. -->
+       <dependency conf="lib->default" org="org.mockito" name="mockito-all" rev="1.9.5" />
     </dependencies>
 </ivy-module>
