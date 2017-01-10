@@ -621,4 +621,18 @@ public class BPMN2PetriNetConverter {
 		return errors;
 	}
 	
+	/**
+	 * @return map from bpmn nodes to the set of Petri net nodes that represent the bpmn node
+	 */
+	public Map<BPMNNode, Set<PetrinetNode>> getNodeMap() {
+		return nodeMap;
+	}
+	
+	/**
+	 * @return map from edges between BPMN nodes the place that represents the edge
+	 */
+	public Map<BPMNEdge<BPMNNode, BPMNNode>, Place> getFlowMap() {
+		return flowMap;
+	}
+	
 }
