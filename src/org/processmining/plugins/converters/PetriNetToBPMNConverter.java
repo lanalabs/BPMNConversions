@@ -200,7 +200,8 @@ public class PetriNetToBPMNConverter {
         Event endEvent = retrieveEndEvent();
         // Create final event
         if (endEvent == null) {
-            endEvent = bpmnDiagram.addEvent("END EVENT", Event.EventType.END, null, Event.EventUse.THROW, true, null);
+            endEvent = bpmnDiagram.addEvent("END EVENT", Event.EventType.END, Event.EventTrigger.NONE, 
+            		Event.EventUse.THROW, true, null);
         }
         Set<Transition> inTransitions = collectInTransitions(place);
 
