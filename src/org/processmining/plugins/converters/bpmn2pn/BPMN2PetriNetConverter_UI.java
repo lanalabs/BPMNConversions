@@ -18,6 +18,10 @@ public class BPMN2PetriNetConverter_UI extends ProMPropertiesPanel {
 	private static final long serialVersionUID = 1L;
 	
 	private javax.swing.JCheckBox linkSubProcessToActivityBox;
+	private javax.swing.JCheckBox translateWithLifeCycleVisible;
+	private javax.swing.JComboBox<String> labelType;
+	private javax.swing.JCheckBox labelFlowPlaces;
+	private javax.swing.JCheckBox makeRoutingTransitionsVisible;
 	
 	private static final String DIALOG_NAME = "Options for translation to Petri net";
 	
@@ -40,7 +44,20 @@ public class BPMN2PetriNetConverter_UI extends ProMPropertiesPanel {
 		addToProperties(Box.createVerticalStrut(15));
 
 		
-		linkSubProcessToActivityBox = addCheckBox("Link subprocess definition to its calling activity", config.linkSubProcessToActivity, 0, 400);
+		translateWithLifeCycleVisible = addCheckBox("Translate activties with start/complete life-cycle", config.translateWithLifeCycleVisible, 0, 400);
+		linkSubProcessToActivityBox = addCheckBox("Replace subprocess activity by subprocess definition", config.linkSubProcessToActivity, 0, 400);
+		
+		String[] labelValues = {
+				"just original label", //ORIGINAL_LABEL,
+				"prefix routing constructs with BPMN type", //PREFIX_NONTASK_BY_BPMN_TYPE,
+				"prefix all constructs with BPMN type", //PREFIX_ALL_BY_BPMN_TYPE,
+				"prefix all constructs with Petri net and BPMN type", //PREFIX_ALL_BY_PN_BPMN_TYPE
+		};
+		labelType = addComboBox("How shall the Petri net nodes be labeled", labelValues, 0, 400);
+		labelType.setSelectedIndex(config.labelNodesWith.ordinal());
+		
+		labelFlowPlaces = addCheckBox("Label Petri net places for sequence flows (if no label defined)", config.labelFlowPlaces, 0, 400);
+		makeRoutingTransitionsVisible = addCheckBox("Translate routing constructs to visible transitions", config.makeRoutingTransitionsVisible, 0, 400);
 	}
 	
 	/**
@@ -62,7 +79,11 @@ public class BPMN2PetriNetConverter_UI extends ProMPropertiesPanel {
 	 *         {@link #getUserChoice(UIPluginContext)} was called
 	 */
 	private void getChosenParameters(BPMN2PetriNetConverter_Configuration config) {
+		config.translateWithLifeCycleVisible = translateWithLifeCycleVisible.isSelected();
 		config.linkSubProcessToActivity = linkSubProcessToActivityBox.isSelected();
+		config.labelNodesWith = BPMN2PetriNetConverter_Configuration.LabelValue.values()[labelType.getSelectedIndex()];
+		config.labelFlowPlaces = labelFlowPlaces.isSelected();
+		config.makeRoutingTransitionsVisible = makeRoutingTransitionsVisible.isSelected();
 	}
 	
 	/**

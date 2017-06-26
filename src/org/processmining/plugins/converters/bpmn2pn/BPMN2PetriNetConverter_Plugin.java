@@ -1,5 +1,7 @@
 package org.processmining.plugins.converters.bpmn2pn;
 
+import java.util.List;
+
 import javax.swing.JOptionPane;
 
 import org.deckfour.uitopia.api.event.TaskListener.InteractionResult;
@@ -10,9 +12,11 @@ import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
 import org.processmining.framework.plugin.annotations.PluginLevel;
 import org.processmining.framework.plugin.annotations.PluginVariant;
+import org.processmining.models.connections.petrinets.behavioral.FinalMarkingConnection;
 import org.processmining.models.connections.petrinets.behavioral.InitialMarkingConnection;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import org.processmining.models.graphbased.directed.petrinet.elements.Place;
 import org.processmining.models.semantics.petrinet.Marking;
 
 /**
@@ -51,6 +55,15 @@ public class BPMN2PetriNetConverter_Plugin {
 			Petrinet net = conv.getPetriNet();
 			Marking m = conv.getMarking();
 			context.getConnectionManager().addConnection(new InitialMarkingConnection(net, m));
+			
+			List<Place> finalPlaces = conv.getFinalPlaces(); 
+			if (finalPlaces.size() == 1) {
+				Marking mf = new Marking(finalPlaces);
+				context.getConnectionManager().addConnection(new FinalMarkingConnection(net, mf));
+				context.getProvidedObjectManager().createProvidedObject("Final marking of the PN from " + bpmn.getLabel(), mf, context);
+			} else {
+				conv.warnings.add("More than 1 final place, could not construct generic final marking.");
+			}
 
 			if (!conv.getWarnings().isEmpty())
 				showWarningsandErrors(context, conv);
