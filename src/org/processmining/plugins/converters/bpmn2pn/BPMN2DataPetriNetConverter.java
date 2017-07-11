@@ -121,7 +121,7 @@ public class BPMN2DataPetriNetConverter extends BPMN2PetriNetConverter {
 	private void convertGuards() {
 		for (Flow sequenceFlow : bpmn.getFlows()) {
 			String guard = sequenceFlow.getLabel();
-			if ((guard != null) && (guard != "")) {
+			if ((guard != null) && (!guard.equals(""))) {
 				if (sequenceFlow.getTarget() instanceof Activity) {
 					Activity activity = (Activity) (sequenceFlow.getTarget());
 					Transition transition = activitiesMap.get(activity);
