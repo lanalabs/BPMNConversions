@@ -33,7 +33,7 @@ import com.fluxicon.slickerbox.ui.SlickerScrollBarUI;
 
 /**
  * 
- * @author mwesterg
+ * @author mwesterg, dfahland
  * 
  */
 public class ProMPropertiesPanel extends ProMHeaderPanel {

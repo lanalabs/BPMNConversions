@@ -1,6 +1,7 @@
 package org.processmining.plugins.converters.bpmn2pn;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -15,6 +16,7 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventTrigger;
+import org.processmining.models.graphbased.directed.bpmn.elements.Event.EventType;
 import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.SubProcess;
@@ -96,6 +98,7 @@ public class BPMN2PetriNetConverter {
 								Place p = (Place)n;
 								m.remove(p); // initial place of start node is no longer initially marked
 								Transition t_eventStart = net.addTransition("t_start_"+e.getLabel());
+								t_eventStart.setInvisible(true);
 								net.addArc(p_uniqueStart, t_eventStart);
 								net.addArc(t_eventStart, p);
 							}
@@ -107,7 +110,9 @@ public class BPMN2PetriNetConverter {
 						for (PetrinetNode n : endNodes) {
 							if (n instanceof Place) {
 								Place p = (Place)n;
+								finalPlace.remove(p); // final place no longer part of final marking
 								Transition t_eventEnd = net.addTransition("t_end_"+e.getLabel());
+								t_eventEnd.setInvisible(true);
 								net.addArc(p, t_eventEnd);
 								net.addArc(t_eventEnd, p_uniqueEnd);
 							}
@@ -118,28 +123,133 @@ public class BPMN2PetriNetConverter {
 				}
 			}
 			m.add(p_uniqueStart);
+			finalPlace.add(p_uniqueEnd);
 		}
 
 		return errors.size() == 0;
 	}
 	
-	/**
-	 * Translate edges of the BPMN diagram to places, updates {@link #flowMap}
-	 */
+
 	private void translateEdges() {
-		for (Flow f : bpmn.getFlows()) {
+		for (BPMNNode n : bpmn.getNodes()) {
+			// select only the sequence flow edges, message flows etc are ignored
+			List<Flow> inFlows = new ArrayList<Flow>();
+			for (BPMNEdge<? extends BPMNNode, ? extends BPMNNode> e : bpmn.getInEdges(n)) {
+				if (e instanceof Flow) inFlows.add((Flow)e);
+			}
+
+			// gateways are translated with one place per flow
+			if (n instanceof Gateway)
+				translateEdges(inFlows, false);
+			
+			// activities are translated with one place for all flows
+			else if (n instanceof Activity)
+				translateEdges(inFlows, true);
+			
+			// events are translated with one place for all flows, unless
+			// configuration asks for multiple places
+			else if (n instanceof Event) {
+				if ( ((Event)n).getEventType() == EventType.END ) {
+					translateEdges(inFlows, (config.endEventJoin == BPMN2PetriNetConverter_Configuration.EndEventJoin.XOR));
+				} else {
+					translateEdges(inFlows, true);					
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Translate edges of the BPMN diagram to places, updates {@link #flowMap}.
+	 * 
+	 * @param mergeToSinglePlace
+	 *            if 'true', all flows are translated to the same place,
+	 *            otherwise each flow is translated to its own separate place.
+	 *            Use 'true' for example to translate implicit XOR-merge at an
+	 *            activity.
+	 */
+	private void translateEdges(Collection<Flow> flows, boolean mergeToSinglePlace) {
+		if (flows.isEmpty()) return;
+		
+		if (mergeToSinglePlace) {
+			// assume all flows go to the same target node, create one place, all flows map to this place
+			BPMNNode target = flows.iterator().next().getTarget();
 			String p_label;
-			if (f.getLabel() != null && !f.getLabel().isEmpty())
-				p_label = getLabel(f.getLabel(), "flow", "p", false);
-			else if (config.labelFlowPlaces)
-				p_label = getLabel(f.getSource().getLabel()+"_"+f.getTarget().getLabel(), "flow", "p", false);
+			if (config.labelFlowPlaces && target.getLabel() != null && !target.getLabel().isEmpty())
+				p_label = getLabel(target.getLabel(), "flow_merge", "p", false);
 			else
 				p_label = "";
 			
 			Place p = net.addPlace(p_label);
-			flowMap.put(f, p);
+			
+			for (Flow f : flows)
+				flowMap.put(f, p);
+			
+		} else {
+			// create one place for each flow
+			for (Flow f : flows) {
+				String p_label;
+				if (f.getLabel() != null && !f.getLabel().isEmpty())
+					p_label = getLabel(f.getLabel(), "flow", "p", false);
+				else if (config.labelFlowPlaces)
+					p_label = getLabel(f.getSource().getLabel()+"_"+f.getTarget().getLabel(), "flow", "p", false);
+				else
+					p_label = "";
+				
+				Place p = net.addPlace(p_label);
+				flowMap.put(f, p);
+			}
 		}
 	}
+	
+	/**
+	 * Connect transition t to all places representing the incoming flows of
+	 * node n. For tasks, the incoming flows are translated to a single input
+	 * place through {@link #translateEdges()}.
+	 * 
+	 * @param n
+	 * @param t
+	 */
+	private void connectToAllInFlows(BPMNNode n, Transition t) {
+		
+		// gather all places representing the inflows
+		Set<Place> places = new HashSet<Place>();
+		// connect transition to place of incoming edge
+		for (BPMNEdge<?, ?> f : bpmn.getInEdges(n)) {
+			if (f instanceof Flow) {
+				places.add(flowMap.get(f));
+			}
+		}
+
+		// add edges from inflow places to transition
+		for (Place p : places) {
+			net.addArc(p, t);			
+		}
+	}
+	
+	/**
+	 * Connect transition t to all places representing the outgoing flows of
+	 * node n.
+	 * 
+	 * @param n
+	 * @param t
+	 */
+	private void connectToAllOutFlows(BPMNNode n, Transition t) {
+
+		// gather all places representing the outflows
+		Set<Place> places = new HashSet<Place>();
+		// connect transition to place of incoming edge
+		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(n)) {
+			if (f instanceof Flow) {
+				places.add(flowMap.get(f));
+			}
+		}
+
+		// add edges from transition to outflow places
+		for (Place p : places) {
+			net.addArc(t, p);			
+		}
+	}
+
 	
 	/**
 	 * Translate events to Petri net patterns, updates {@link #nodeMap} and reads {@link #flowMap}.
@@ -164,29 +274,28 @@ public class BPMN2PetriNetConverter {
 	}
 	
 	private void translateStartEvent(Event e) {
+		
+		Transition t = net.addTransition(getLabel(e.getLabel(), "start_event", "t", false));
+		t.setInvisible(!config.makeStartEndEventsVisible);
+		
+		// input from new initial place
 		Place p = net.addPlace(getLabel(e.getLabel()+"_initial", "start_event", "p", false));
 		m.add(p);
-		Transition t = net.addTransition(getLabel(e.getLabel(), "start_event", "t", false));
 		net.addArc(p, t);
-		// connect transition to place of outgoing edge
-		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(e)) {
-			if (f instanceof Flow) {
-				net.addArc(t, flowMap.get(f));
-			}
-		}
+		connectToAllOutFlows(e, t);
+		
 		setNodeMapFor(nodeMap, e, p, t);
 	}
 	
 	private void translateEndEvent(Event e) {
-		Place p = net.addPlace(getLabel(e.getLabel()+"_ended", "end_event", "p", false));
+
 		Transition t = net.addTransition(getLabel(e.getLabel(), "end_event", "t", false));
+		t.setInvisible(!config.makeStartEndEventsVisible);
+		connectToAllInFlows(e, t);
+		// output to new final place
+		Place p = net.addPlace(getLabel(e.getLabel()+"_ended", "end_event", "p", false));
 		net.addArc(t, p);
-		// connect transition to place of incoming edge
-		for (BPMNEdge<?, ?> f : bpmn.getInEdges(e)) {
-			if (f instanceof Flow) {
-				net.addArc(flowMap.get(f), t);
-			}
-		}
+	
 		setNodeMapFor(nodeMap, e, p, t);
 		finalPlace.add(p);
 	}
@@ -201,18 +310,10 @@ public class BPMN2PetriNetConverter {
 		String label = e.getEventTrigger().name()+"_"+e.getLabel()+attachedActivity;
 		
 		Transition t = net.addTransition(getLabel(label, "event", "t", false));
-		// connect transition to place of outgoing edge
-		for (BPMNEdge<?, ?> f : bpmn.getInEdges(e)) {
-			if (f instanceof Flow) {
-				net.addArc(flowMap.get(f), t);
-			}
-		}
-		// connect transition to place of outgoing edge
-		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(e)) {
-			if (f instanceof Flow) {
-				net.addArc(t, flowMap.get(f));
-			}
-		}
+		t.setInvisible(!config.makeIntermediateEventsVisible);
+		connectToAllInFlows(e, t);
+		connectToAllOutFlows(e, t);
+
 		setNodeMapFor(nodeMap, e, t);
 	}
 	
@@ -370,6 +471,7 @@ public class BPMN2PetriNetConverter {
 					for (PetrinetNode n : endNodes) {
 						if (n instanceof Place) {
 							Place p = (Place)n;
+							finalPlace.remove(p); // final place no longer part of final marking
 							net.addArc(p, t_end);
 						}
 					}				
@@ -381,18 +483,8 @@ public class BPMN2PetriNetConverter {
 			nodeSet.add(t_act);
 		}
 		
-		// connect transition to place of incoming edge
-		for (BPMNEdge<?, ?> f : bpmn.getInEdges(a)) {
-			if (f instanceof Flow) {
-				net.addArc(flowMap.get(f), t_start);
-			}
-		}
-		// connect transition to place of outgoing edge
-		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(a)) {
-			if (f instanceof Flow) {
-				net.addArc(t_end, flowMap.get(f));
-			}
-		}
+		connectToAllInFlows(a, t_start);
+		connectToAllOutFlows(a, t_end);
 	}
 	
 	
@@ -495,18 +587,8 @@ public class BPMN2PetriNetConverter {
 		t.setInvisible(!config.makeRoutingTransitionsVisible);
 		setNodeMapFor(nodeMap, g, t);
 		
-		// connect transition to place of incoming edge
-		for (BPMNEdge<?, ?> f : bpmn.getInEdges(g)) {
-			if (f instanceof Flow) {
-				net.addArc(flowMap.get(f), t);
-			}
-		}
-		// connect transition to place of outgoing edge
-		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(g)) {
-			if (f instanceof Flow) {
-				net.addArc(t, flowMap.get(f));
-			}
-		}
+		connectToAllInFlows(g, t);
+		connectToAllOutFlows(g, t);
 	}
 	
 	private void translateORGateway(Gateway g) {

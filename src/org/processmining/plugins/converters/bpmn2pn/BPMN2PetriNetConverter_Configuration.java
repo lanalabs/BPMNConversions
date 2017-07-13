@@ -52,5 +52,37 @@ public class BPMN2PetriNetConverter_Configuration {
 	 * hidden.
 	 */
 	public boolean makeRoutingTransitionsVisible = false;
+	
+	/**
+	 * If 'true', then transitions that originate from start or end events are
+	 * translated to visible transitions, otherwise these transitions will be
+	 * hidden.
+	 */
+	public boolean makeStartEndEventsVisible = false;
+	
+	/**
+	 * If 'true', then transitions that originate from intermediate events are
+	 * translated to visible transitions, otherwise these transitions will be
+	 * hidden.
+	 */
+	public boolean makeIntermediateEventsVisible = false;
+
+	
+	/**
+	 * Provides constants for the join semantics of end events if multiple
+	 * inflows/multiple end events are present, used in {@link BPMN2PetriNetConverter}
+	 */
+	public static enum EndEventJoin {
+		XOR,
+		AND
+		//,OR
+	}
+
+	/**
+	 * Which join logic to assume for end events if multiple
+	 * inflows/multiple end events are present.
+	 */
+	public EndEventJoin endEventJoin = EndEventJoin.XOR;
+
 
 }
