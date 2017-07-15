@@ -11,6 +11,7 @@ import org.processmining.contexts.uitopia.annotations.UITopiaVariant;
 import org.processmining.framework.plugin.PluginContext;
 import org.processmining.framework.plugin.Progress;
 import org.processmining.framework.plugin.annotations.Plugin;
+import org.processmining.framework.plugin.annotations.PluginLevel;
 import org.processmining.framework.plugin.annotations.PluginVariant;
 import org.processmining.models.graphbased.NodeID;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
@@ -43,9 +44,10 @@ import org.processmining.processtree.Task.Manual;
  * @author Anna Kalenkova
  * Oct 01, 2013
  */
-@Plugin(name = "Convert Process tree to BPMN diagram", parameterLabels = { "Process tree", "Simplify"}, 
-returnLabels = { "BPMN Diagram ", "Conversion map" }, returnTypes = { BPMNDiagram.class, Map.class }, 
-userAccessible = true, help = "Converts Process tree to BPMN diagram")
+@Plugin(name = "Convert Process tree to BPMN diagram",  level = PluginLevel.PeerReviewed,
+parameterLabels = { "Process tree", "Simplify"}, returnLabels = { "BPMN Diagram ", "Conversion map" },
+returnTypes = { BPMNDiagram.class, Map.class }, userAccessible = true,
+help = "Converts Process tree to BPMN diagram")
 public class ProcessTree2BPMNConverter {
 	
 	private static final String PROCESS_TREE_INTERNAL_NODE = "Process tree internal node";
