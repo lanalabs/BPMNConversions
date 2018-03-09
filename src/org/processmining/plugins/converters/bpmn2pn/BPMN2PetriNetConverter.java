@@ -307,7 +307,8 @@ public class BPMN2PetriNetConverter {
 		}
 		
 		String attachedActivity = (e.getBoundingNode() != null ? "_"+e.getBoundingNode().getLabel() : "");
-		String label = e.getEventTrigger().name()+"_"+e.getLabel()+attachedActivity;
+		String triggerName = (e.getEventTrigger() != null) ? e.getEventTrigger().name() : "";
+		String label = triggerName+"_"+e.getLabel()+attachedActivity;
 		
 		Transition t = net.addTransition(getLabel(label, "event", "t", false));
 		t.setInvisible(!config.makeIntermediateEventsVisible);
