@@ -265,7 +265,9 @@ public class PetriNetToBPMNConverterPlugin {
 			marking = initialMarkingConnection.getObjectWithRole(InitialMarkingConnection.MARKING);
 			if ((marking != null) && (marking.size() == 0)) {
 				Place sourcePlace = retrieveSourcePlace(petrinetGraph);
-				marking.add(sourcePlace);
+				if (sourcePlace != null) {
+					marking.add(sourcePlace);
+				}
 			}
 		} catch (ConnectionCannotBeObtained e) {
 			Place sourcePlace = retrieveSourcePlace(petrinetGraph);
