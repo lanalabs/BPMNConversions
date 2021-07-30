@@ -45,11 +45,11 @@ public class BPMN2PetriNetConverter {
 	/**
 	 * maps each BPMN control-flow edge to a place
 	 */
-	private Map<BPMNEdge<BPMNNode, BPMNNode>, Place> flowMap = new HashMap<BPMNEdge<BPMNNode, BPMNNode>, Place>();
+	protected Map<BPMNEdge<BPMNNode, BPMNNode>, Place> flowMap = new HashMap<BPMNEdge<BPMNNode, BPMNNode>, Place>();
 	/**
 	 * maps each BPMN node to a set of Petri net nodes (transitions and places)
 	 */
-	private Map<BPMNNode, Set<PetrinetNode>> nodeMap = new HashMap<BPMNNode, Set<PetrinetNode>>();
+	protected Map<BPMNNode, Set<PetrinetNode>> nodeMap = new HashMap<BPMNNode, Set<PetrinetNode>>();
 
 	
 	public BPMN2PetriNetConverter(BPMNDiagram bpmn) {
@@ -102,7 +102,7 @@ public class BPMN2PetriNetConverter {
 		}
 	}
 	
-	private void translateStartEvent(Event e) {
+	protected void translateStartEvent(Event e) {
 		Place p = net.addPlace("p_start_"+e.getLabel());
 		m.add(p);
 		Transition t = net.addTransition("t_start_"+e.getLabel());
@@ -116,7 +116,7 @@ public class BPMN2PetriNetConverter {
 		setNodeMapFor(nodeMap, e, p, t);
 	}
 	
-	private void translateEndEvent(Event e) {
+	protected void translateEndEvent(Event e) {
 		Place p = net.addPlace("p_end_"+e.getLabel());
 		Transition t = net.addTransition("t_end_"+e.getLabel());
 		net.addArc(t, p);
@@ -129,7 +129,7 @@ public class BPMN2PetriNetConverter {
 		setNodeMapFor(nodeMap, e, p, t);
 	}
 	
-	private void translateIntermediateEvent(Event e) {
+	protected void translateIntermediateEvent(Event e) {
 		
 		if (e.getEventTrigger() == EventTrigger.COMPENSATION) {
 			warnings.add("This translation does not support compensation events and does not preserve compensation semantics.\n The resulting Petri net should not be used for soundness chedcking.");
@@ -138,6 +138,7 @@ public class BPMN2PetriNetConverter {
 		String attachedActivity = (e.getBoundingNode() != null ? "_"+e.getBoundingNode().getLabel() : "");
 
 		Transition t = net.addTransition("t_ev_"+e.getEventTrigger().name()+"_"+e.getLabel()+attachedActivity);
+		t.setInvisible(true);
 		// connect transition to place of outgoing edge
 		for (BPMNEdge<?, ?> f : bpmn.getInEdges(e)) {
 			if (f instanceof Flow) {
@@ -167,11 +168,11 @@ public class BPMN2PetriNetConverter {
 		}
 	}
 	
-	private void translateActivity(Activity a) {
+	protected void translateActivity(Activity a) {
 		Set<PetrinetNode> nodeSet = new HashSet<PetrinetNode>();
 		nodeMap.put(a, nodeSet);
 
-		Transition t_act = net.addTransition("t_act_"+a.getLabel());
+		Transition t_act = net.addTransition(a.getLabel());
 		Transition t_start = null;
 		Transition t_end = null;
 		Place p_ready = null;
@@ -180,8 +181,8 @@ public class BPMN2PetriNetConverter {
 		// create atomic or structured activity
 		boolean model_structured = !translateActivityAtomic(a);
 		if (model_structured) {
-			t_start = net.addTransition("t_act_"+a.getLabel()+"_start");
-			t_end = net.addTransition("t_act_"+a.getLabel()+"_complete");
+			t_start = net.addTransition(a.getLabel()+"_start");
+			t_end = net.addTransition(a.getLabel()+"_complete");
 			p_ready = net.addPlace("p_act_"+a.getLabel()+"_ready");
 			p_finished = net.addPlace("p_act_"+a.getLabel()+"_finished");
 
@@ -202,7 +203,7 @@ public class BPMN2PetriNetConverter {
 			// is a looped multi-instance activity
 			if (a.isBLooped()) {
 
-				Transition t_repeat = net.addTransition("t_act_"+a.getLabel()+"_repeat");
+				Transition t_repeat = net.addTransition(a.getLabel()+"_repeat");
 				// loop back
 				net.addArc(p_finished, t_repeat);
 				net.addArc(t_repeat, p_ready);
@@ -236,7 +237,7 @@ public class BPMN2PetriNetConverter {
 				PetrinetNode e_nodes[] = nodeMap.get(compensationEvent).toArray(new PetrinetNode[nodeMap.get(compensationEvent).size()]);
 				
 				// remember when the activity has been executed and enable compensation event correspondingly
-				Place p_act_wasExecuted = net.addPlace("t_act_"+a.getLabel()+"_wasExecuted");
+				Place p_act_wasExecuted = net.addPlace(a.getLabel()+"_wasExecuted");
 				net.addArc(t_act, p_act_wasExecuted);
 				net.addArc(p_act_wasExecuted, (Transition)e_nodes[0]);
 				
@@ -332,6 +333,7 @@ public class BPMN2PetriNetConverter {
 		for (BPMNEdge<?, ?> f : bpmn.getInEdges(g)) {
 			if (f instanceof Flow) {
 				Transition t = net.addTransition(f.getSource().getLabel()+"_merge_"+g.getLabel());
+				t.setInvisible(true);
 				net.addArc(t, p);
 				net.addArc(flowMap.get(f), t);
 				nodeMap.get(g).add(t);
@@ -342,6 +344,7 @@ public class BPMN2PetriNetConverter {
 		for (BPMNEdge<?, ?> f : bpmn.getOutEdges(g)) {
 			if (f instanceof Flow) {
 				Transition t = net.addTransition(f.getTarget().getLabel()+"_split_"+g.getLabel());
+				t.setInvisible(true);
 				net.addArc(p, t);
 				net.addArc(t, flowMap.get(f));
 				nodeMap.get(g).add(t);
@@ -351,6 +354,7 @@ public class BPMN2PetriNetConverter {
 	
 	private void translateANDGateway(Gateway g) {
 		Transition t = net.addTransition("g_and_"+g.getLabel());
+		t.setInvisible(true);
 		setNodeMapFor(nodeMap, g, t);
 		
 		// connect transition to place of incoming edge
@@ -414,6 +418,7 @@ public class BPMN2PetriNetConverter {
 			    
 			    // create transition for this subset and connect it to the post-places in the subset
 			    Transition t = net.addTransition("g_ior_join_"+g.getLabel()+"_"+i);
+			    t.setInvisible(true);
 			    nodeSet.add(t);
 			    for (Place p_in : p_subset) {
 			    	net.addArc(p_in, t);
@@ -460,6 +465,7 @@ public class BPMN2PetriNetConverter {
 			    
 			    // create transition for this subset and connect it to the post-places in the subset
 			    Transition t = net.addTransition("g_ior_split_"+g.getLabel()+"_"+i);
+			    t.setInvisible(true);
 			    nodeSet.add(t);
 			    for (Place p_out : p_subset) {
 			    	net.addArc(t, p_out);
@@ -477,7 +483,7 @@ public class BPMN2PetriNetConverter {
 	 * @param n
 	 * @param nodes
 	 */
-	private void setNodeMapFor(Map<BPMNNode, Set<PetrinetNode>> nodeMap, BPMNNode n, PetrinetNode ...nodes) {
+	protected void setNodeMapFor(Map<BPMNNode, Set<PetrinetNode>> nodeMap, BPMNNode n, PetrinetNode ...nodes) {
 		Set<PetrinetNode> nodeSet = new HashSet<PetrinetNode>();
 		for (PetrinetNode n2 : nodes)
 			nodeSet.add(n2);
