@@ -1,0 +1,16 @@
+<ivy-module version="2.0">
+    <info organisation="prom" module="BPMNConversions" revision="latest">
+        <description>
+            Version VERSION
+        </description>
+    </info>
+    <configurations>
+        <conf name="default" extends="lib" />
+        <conf name="lib" />
+    </configurations>
+    <dependencies defaultconf="default">
+        <!-- ProM dependencies -->
+        <dependency org="prom" name="BPMN" rev="latest" changing="true" transitive="true" />
+        <dependency org="prom" name="PetriNets" rev="latest" changing="true" transitive="true" />
+    </dependencies>
+</ivy-module>
